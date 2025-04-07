@@ -38,6 +38,14 @@ public class Main extends Application {
 
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
 
+        //Handle game input mouse events
+        DragHandler handler = new DragHandler(board, game, canvas);
+        canvas.setOnMousePressed(handler::MousePressed);
+        canvas.setOnMouseReleased(handler::MouseReleased);
+        canvas.setOnMouseDragged(handler::MouseDragged);
+
+
+        // Set up
         stage.setTitle("Chess");
         stage.setScene(scene);
         stage.show();

@@ -92,5 +92,24 @@ public class Board {
         }
     }
 
+    public int getSquareSize() {
+        return this.squareSize;
+    }
+
+    public int getWindowsWidth() {
+        return this.windowsWidth;
+    }
+
+    public int getWindowsHeight() {
+        return this.windowsHeight;
+    }
+
+    public int getSize() {
+        return this.size;
+    }
+
+    public Image obtainImage(int piece) {
+        return getImage(piece);
+    }
 
 }

@@ -49,8 +49,8 @@ public class Game {
         board[7][3] = 5; //White
 
         //Set up kings
-        board[0][4] = -6;   //Black
-        board[7][4] = 6;    //White
+        board[0][4] = -6; //Black
+        board[7][4] = 6; //White
 
     }
     public int[][] getBoard() {
