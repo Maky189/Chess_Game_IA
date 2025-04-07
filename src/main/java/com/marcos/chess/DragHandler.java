@@ -31,6 +31,11 @@ public class DragHandler {
             fromX = pos[0];
             fromY = pos[1];
             selectedPiece = board[fromX][fromY];
+
+            if(selectedPiece != 0) {
+                board[fromX][fromY] = 0;
+            }
+
         } else {
             selectedPiece = 0;
         }
@@ -66,6 +71,9 @@ public class DragHandler {
 
     // Redraw the board with the piece beign dragged
     private void drawDrag() {
+        // Clear the canvas before redrawing
+        canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
 
         if(selectedPiece != 0) {
@@ -77,6 +85,10 @@ public class DragHandler {
     }
 
     private void redraw() {
+        //Clear board
+        canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        //Update Board
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
     }
 
