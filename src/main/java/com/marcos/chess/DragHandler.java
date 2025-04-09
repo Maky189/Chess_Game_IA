@@ -3,18 +3,19 @@ package com.marcos.chess;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import java.util.List;
 
 public class DragHandler {
 
     private final Board board;
     private final Game game;
     private final Canvas canvas;
-
     private int selectedPiece = 0;
     private int fromX = -1;
     private int fromY = -1;
     private double toX = 0;
     private double toY = 0;
+    private List<int[]> possibleMoves = null;
 
     public DragHandler(Board board, Game game, Canvas canvas) {
         this.board = board;
@@ -33,11 +34,17 @@ public class DragHandler {
             selectedPiece = board[fromX][fromY];
 
             if(selectedPiece != 0) {
+                possibleMoves = game.calculatePossibleMoves(fromX, fromY);
+                redrawWithHighlight();
                 board[fromX][fromY] = 0;
+            }
+            else {
+                clear();
             }
 
         } else {
             selectedPiece = 0;
+            clear();
         }
     }
 
@@ -65,6 +72,7 @@ public class DragHandler {
             }
 
             selectedPiece = 0;
+            possibleMoves = null;
             redraw();
         }
     }
@@ -74,7 +82,12 @@ public class DragHandler {
         // Clear the canvas before redrawing
         canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
+        if (possibleMoves != null) {
+            board.drawBoardWithHighlights(canvas.getGraphicsContext2D(), game.getBoard(), possibleMoves);
+        }
+        else {
+            board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
+        }
 
         if(selectedPiece != 0) {
             double x = toX - board.getSquareSize() / 2.0;
@@ -90,6 +103,16 @@ public class DragHandler {
 
         //Update Board
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
+    }
+
+    private void redrawWithHighlight() {
+        canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        board.drawBoardWithHighlights(canvas.getGraphicsContext2D(), game.getBoard(), possibleMoves);
+    }
+
+    private void clear() {
+        possibleMoves = null;
+        redraw();
     }
 
     private int[] getCoord(double x, double y) {

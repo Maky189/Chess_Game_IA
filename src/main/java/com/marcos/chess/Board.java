@@ -4,6 +4,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
+import java.util.List;
 
 public class Board {
 
@@ -68,6 +69,51 @@ public class Board {
                 }
             }
         }
+    }
+
+    public void drawBoardWithHighlights(GraphicsContext gc, int[][] board, List<int[]> highlights) {
+        Color white = Color.WHITE;
+        Color black = Color.BLACK;
+        Color highlightColor = Color.BLUE;
+
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, windowsWidth, windowsHeight);
+
+        double x = (windowsWidth - size * squareSize) / 2.0;
+        double y = (windowsHeight - size * squareSize) / 2.0;
+
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+
+                boolean isWhite = (i + j) % 2 == 0;
+                gc.setFill(isWhite ? white : black);
+
+                double x1 = x + j * squareSize;
+                double y1 = y + i * squareSize;
+
+                gc.fillRect(x1, y1, squareSize, squareSize);
+
+                if (highlights != null && isHighlighted(highlights, i, j)) {
+                    gc.setFill(highlightColor);
+                    gc.fillRect(x1, y1, squareSize, squareSize);
+                }
+
+                Image piece = getImage(board[i][j]);
+                if(piece != null) {
+                    gc.drawImage(piece, x1, y1, squareSize, squareSize);
+                }
+            }
+        }
+    }
+
+    private boolean isHighlighted(List<int[]> highlights, int i, int j) {
+        for (int[] highlight : highlights) {
+            if (highlight[0] == i && highlight[1] == j) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Image getImage(int piece) {
