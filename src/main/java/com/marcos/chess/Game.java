@@ -59,12 +59,12 @@ public class Game {
         return this.board;
     }
 
-    public boolean isInBounds(int x, int y) {
-        return x >= 0 && x < board.length && y >= 0 && y < board[0].length;
+    private boolean isInBounds(int row, int col) {
+        return row >= 0 && row < board.length && col >= 0 && col < board[row].length;
     }
 
-    public List<int[]> calculatePossibleMoves(int row, int col) {
-        int piece = board[row][col];
+    public List<int[]> calculatePossibleMoves(int x, int y) {
+        int piece = board[x][y];
         if (piece == 0) {
             return new ArrayList<>(); // No moves for an empty square
         }
@@ -73,23 +73,22 @@ public class Game {
 
         switch (Math.abs(piece)) {
             case 1: // Pawn
-                calculatePawnMoves(row, col, piece, possibleMoves);
+                calculatePawnMoves(x, y, piece, possibleMoves);
                 break;
             case 2: // Rook
-                calculateRookMoves(row, col, piece, possibleMoves);
+                calculateRookMoves(x, y, piece, possibleMoves);
                 break;
             case 3: // Knight
-                calculateKnightMoves(row, col, piece, possibleMoves);
+                calculateKnightMoves(x, y, piece, possibleMoves);
                 break;
             case 4: // Bishop
-                calculateBishopMoves(row, col, piece, possibleMoves);
+                calculateBishopMoves(x, y, piece, possibleMoves);
                 break;
             case 5: // Queen
-                calculateRookMoves(row, col, piece, possibleMoves);
-                calculateBishopMoves(row, col, piece, possibleMoves);
+                calculateQueenMoves(x, y, piece, possibleMoves);
                 break;
             case 6: // King
-                calculateKingMoves(row, col, piece, possibleMoves);
+                calculateKingMoves(x, y, piece, possibleMoves);
                 break;
         }
 
@@ -116,69 +115,87 @@ public class Game {
         }
     }
 
-    private void calculateLinearMoves(int x, int y, int piece, List<int[]> moves, int dirX, int dirY) {
-        int newX = x  + dirX;
-        int newY = y + dirY;
-        while (isInBounds(newX, newY)) {
+    private void calculateLinearMoves(int row, int col, int piece, List<int[]> moves, int rowDir, int colDir) {
+        int newRow = row + rowDir;
+        int newCol = col + colDir;
 
-            if(board[newX][newY] != 0) {
-                moves.add(new int[]{newX, newY});
-            } else if (board[newX][newY] == 0) {
-                Integer.signum(piece);
-                moves.add(new int[]{newX, newY});
-                break;
+        while (isInBounds(newRow, newCol)) {
+            // If the square is empty, add it
+            if (board[newRow][newCol] == 0) {
+                moves.add(new int[]{newRow, newCol});
+            }
+            // If the square is occupied, check if by an opponent
+            else if (Integer.signum(board[newRow][newCol]) != Integer.signum(piece)) {
+                moves.add(new int[]{newRow, newCol}); // Add opponent's piece
+                break; // Stop further moves in this direction
             } else {
+                // Friendly piece blocks the path
                 break;
             }
-            newX += newX;
-            newY += newY;
+
+            // Move further in the same direction
+            newRow += rowDir;
+            newCol += colDir;
         }
     }
 
-    private void calculateRookMoves(int x, int y, int piece, List<int[]> moves) {
-        calculateLinearMoves(x, y, piece, moves, 1, 0);
-        calculateLinearMoves(x, y, piece, moves, 0, 1);
-        calculateLinearMoves(x, y, piece, moves, -1, 0);
-        calculateLinearMoves(x, y, piece, moves, 0, -1);
+    private void calculateRookMoves(int row, int col, int piece, List<int[]> moves) {
+        // Rook moves in straight lines (horizontal and vertical)
+        calculateLinearMoves(row, col, piece, moves, -1, 0); // Up
+        calculateLinearMoves(row, col, piece, moves, 1, 0);  // Down
+        calculateLinearMoves(row, col, piece, moves, 0, -1); // Left
+        calculateLinearMoves(row, col, piece, moves, 0, 1);  // Right
     }
 
-    private void calculateBishopMoves(int x, int y, int piece, List<int[]> moves) {
-        calculateLinearMoves(x, y, piece, moves, 1, 1);
-        calculateLinearMoves(x, y, piece, moves, 1, -1);
-        calculateLinearMoves(x, y, piece, moves, -1, 1);
-        calculateLinearMoves(x, y, piece, moves, -1, -1);
+    private void calculateBishopMoves(int row, int col, int piece, List<int[]> moves) {
+        // Bishop moves diagonally
+        calculateLinearMoves(row, col, piece, moves, -1, -1); // Up-Left
+        calculateLinearMoves(row, col, piece, moves, -1, 1);  // Up-Right
+        calculateLinearMoves(row, col, piece, moves, 1, -1);  // Down-Left
+        calculateLinearMoves(row, col, piece, moves, 1, 1);   // Down-Right
     }
 
-    private void calculateQueenMoves(int x, int y, int piece, List<int[]> moves) {
-        calculateRookMoves(x, y, piece, moves);
-        calculateBishopMoves(x, y, piece, moves);
+    private void calculateQueenMoves(int row, int col, int piece, List<int[]> moves) {
+        // Queen combines Rook and Bishop moves
+        calculateRookMoves(row, col, piece, moves);
+        calculateBishopMoves(row, col, piece, moves);
     }
 
     private void calculateKingMoves(int row, int col, int piece, List<int[]> moves) {
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-                if (isInBounds(row + i, col + j) && board[row + i][col + j] != Integer.signum(piece)) {
-                    moves.add(new int[]{row + i, col + j});
-                }
+        // Possible king move offsets
+        int[][] deltas = {
+                {-1, -1}, {-1, 0}, {-1, 1},
+                {0, -1},         {0, 1},
+                {1, -1}, {1, 0}, {1, 1}
+        };
+
+        for (int[] delta : deltas) {
+            int newRow = row + delta[0];
+            int newCol = col + delta[1];
+
+            // Validate within board bounds and check for empty or opponent's piece
+            if (isInBounds(newRow, newCol) &&
+                    (board[newRow][newCol] == 0 || Integer.signum(board[newRow][newCol]) != Integer.signum(piece))) {
+                moves.add(new int[]{newRow, newCol});
             }
         }
     }
 
     private void calculateKnightMoves(int row, int col, int piece, List<int[]> moves) {
-        int[][] directions = new int[][]{
-                {-2, -1}, {-2, 1}, {-1, -2},
-                {-1, 2},
+        // Possible knight move offsets
+        int[][] deltas = {
+                {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
                 {1, -2}, {1, 2}, {2, -1}, {2, 1}
         };
 
-        for (int[] direction : directions) {
-            int newX = row + direction[0];
-            int newY = col + direction[1];
-            if (isInBounds(newX, newY) && (board[newX][newY] == 0) || (Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
-                moves.add(new int[]{newX, newY});
+        for (int[] delta : deltas) {
+            int newRow = row + delta[0];
+            int newCol = col + delta[1];
+
+            // Validate within board bounds and check for empty or opponent's piece
+            if (isInBounds(newRow, newCol) &&
+                    (board[newRow][newCol] == 0 || Integer.signum(board[newRow][newCol]) != Integer.signum(piece))) {
+                moves.add(new int[]{newRow, newCol});
             }
         }
     }
