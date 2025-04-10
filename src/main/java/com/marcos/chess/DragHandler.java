@@ -16,6 +16,7 @@ public class DragHandler {
     private double toX = 0;
     private double toY = 0;
     private List<int[]> possibleMoves = null;
+    private int currentPlayer = 1;
 
     public DragHandler(Board board, Game game, Canvas canvas) {
         this.board = board;
@@ -33,15 +34,16 @@ public class DragHandler {
             fromY = pos[1];
             selectedPiece = board[fromX][fromY];
 
-            if(selectedPiece != 0) {
+            // Allow selection only if the piece belongs to the current player
+            if (selectedPiece != 0 && Integer.signum(selectedPiece) == currentPlayer) {
                 possibleMoves = game.calculatePossibleMoves(fromX, fromY);
                 redrawWithHighlight();
-                board[fromX][fromY] = 0;
-            }
-            else {
+                board[fromX][fromY] = 0; // Temporarily remove the piece
+            } else {
+                // Clear selection if turn or piece is invalid
+                selectedPiece = 0;
                 clear();
             }
-
         } else {
             selectedPiece = 0;
             clear();
@@ -65,16 +67,37 @@ public class DragHandler {
             if (pos != null) {
                 int x = pos[0];
                 int y = pos[1];
-                board[x][y] = selectedPiece;
-            }
-            else {
+
+                // Check if the target position is valid
+                boolean isValidMove = possibleMoves != null && possibleMoves.stream()
+                        .anyMatch(move -> move[0] == x && move[1] == y);
+
+                if (isValidMove && Integer.signum(selectedPiece) == currentPlayer) {
+                    // Place the piece at the new position
+                    board[x][y] = selectedPiece;
+                    selectedPiece = 0;
+
+                    // Change player turn
+                    changePlayer();
+                } else {
+                    // Invalid move: return piece to the original position
+                    board[fromX][fromY] = selectedPiece;
+                    selectedPiece = 0;
+                }
+            } else {
+                // Invalid drop (outside the board): return piece to the original position
                 board[fromX][fromY] = selectedPiece;
+                selectedPiece = 0;
             }
 
-            selectedPiece = 0;
+            // Clear move highlights and redraw the board
             possibleMoves = null;
             redraw();
         }
+    }
+
+    private void changePlayer() {
+        currentPlayer = -currentPlayer;
     }
 
     // Redraw the board with the piece beign dragged
