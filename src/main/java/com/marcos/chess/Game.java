@@ -59,8 +59,8 @@ public class Game {
         return this.board;
     }
 
-    private boolean isInBounds(int row, int col) {
-        return row >= 0 && row < board.length && col >= 0 && col < board[row].length;
+    private boolean isInBounds(int x, int y) {
+        return x >= 0 && x < board.length && y >= 0 && y < board[x].length;
     }
 
     public List<int[]> calculatePossibleMoves(int x, int y) {
@@ -95,107 +95,108 @@ public class Game {
         return possibleMoves;
     }
 
-    private void calculatePawnMoves(int row, int col, int piece, List<int[]> moves) {
-        int direction = piece > 0 ? -1 : 1; // White moves up (-1), Black moves down (+1)
+    private void calculatePawnMoves(int x, int y, int piece, List<int[]> moves) {
+        int direction = (piece > 0) ? -1 : 1; // White moves up, black moves down
 
-        // Move forward
-        if (isInBounds(row + direction, col) && board[row + direction][col] == 0) {
-            moves.add(new int[]{row + direction, col});
+        // Move one square d
+        int newX = x + direction;
+        if (isInBounds(newX, y) && board[newX][y] == 0) {
+            moves.add(new int[]{newX, y});
         }
 
-        // Capture diagonally
-        if (isInBounds(row + direction, col - 1) && board[row + direction][col - 1] != 0 &&
-                Integer.signum(board[row + direction][col - 1]) != Integer.signum(piece)) {
-            moves.add(new int[]{row + direction, col - 1});
+        // Move two squares in the begining
+        if ((piece > 0 && x == 6) || (piece < 0 && x == 1)) {
+            int twoSquares = x + 2 * direction;
+            if (isInBounds(twoSquares, y) && board[twoSquares][y] == 0 && board[newX][y] == 0) {
+                moves.add(new int[]{twoSquares, y});
+            }
         }
 
-        if (isInBounds(row + direction, col + 1) && board[row + direction][col + 1] != 0 &&
-                Integer.signum(board[row + direction][col + 1]) != Integer.signum(piece)) {
-            moves.add(new int[]{row + direction, col + 1});
+        // Capture piece
+        int[] captures = {-1, 1};
+        for (int capture : captures) {
+            int newY = y + capture;
+            if (isInBounds(newX, newY) && board[newX][newY] != 0 &&
+                    Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
+                moves.add(new int[]{newX, newY});
+            }
         }
     }
 
-    private void calculateLinearMoves(int row, int col, int piece, List<int[]> moves, int rowDir, int colDir) {
-        int newRow = row + rowDir;
-        int newCol = col + colDir;
+    private void calculateLinearMoves(int x, int y, int piece, List<int[]> moves, int DirX, int DirY) {
+        int newX = x + DirX;
+        int newY = y + DirY;
 
-        while (isInBounds(newRow, newCol)) {
+        while (isInBounds(newX, newY)) {
             // If the square is empty, add it
-            if (board[newRow][newCol] == 0) {
-                moves.add(new int[]{newRow, newCol});
+            if (board[newX][newY] == 0) {
+                moves.add(new int[]{newX, newY});
             }
-            // If the square is occupied, check if by an opponent
-            else if (Integer.signum(board[newRow][newCol]) != Integer.signum(piece)) {
-                moves.add(new int[]{newRow, newCol}); // Add opponent's piece
-                break; // Stop further moves in this direction
+            // If the square is occupied check if opponent
+            else if (Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
+                moves.add(new int[]{newX, newY}); // Add opponent's piece
+                break; // Stop moves in this direction
             } else {
-                // Friendly piece blocks the path
+                // Friendly piece bloks
                 break;
             }
 
-            // Move further in the same direction
-            newRow += rowDir;
-            newCol += colDir;
+            // Move further in this direction
+            newX += DirX;
+            newY += DirY;
         }
     }
 
-    private void calculateRookMoves(int row, int col, int piece, List<int[]> moves) {
-        // Rook moves in straight lines (horizontal and vertical)
-        calculateLinearMoves(row, col, piece, moves, -1, 0); // Up
-        calculateLinearMoves(row, col, piece, moves, 1, 0);  // Down
-        calculateLinearMoves(row, col, piece, moves, 0, -1); // Left
-        calculateLinearMoves(row, col, piece, moves, 0, 1);  // Right
+    private void calculateRookMoves(int x, int y, int piece, List<int[]> moves) {
+        // Rook moves in straight lines horizontal and vertical
+        calculateLinearMoves(x, y, piece, moves, -1, 0); // Up
+        calculateLinearMoves(x, y, piece, moves, 1, 0);  // Down
+        calculateLinearMoves(x, y, piece, moves, 0, -1); // Left
+        calculateLinearMoves(x, y, piece, moves, 0, 1);  // Right
     }
 
-    private void calculateBishopMoves(int row, int col, int piece, List<int[]> moves) {
+    private void calculateBishopMoves(int x, int y, int piece, List<int[]> moves) {
         // Bishop moves diagonally
-        calculateLinearMoves(row, col, piece, moves, -1, -1); // Up-Left
-        calculateLinearMoves(row, col, piece, moves, -1, 1);  // Up-Right
-        calculateLinearMoves(row, col, piece, moves, 1, -1);  // Down-Left
-        calculateLinearMoves(row, col, piece, moves, 1, 1);   // Down-Right
+        calculateLinearMoves(x, y, piece, moves, -1, -1); // Up-Left
+        calculateLinearMoves(x, y, piece, moves, -1, 1);  // Up-Right
+        calculateLinearMoves(x, y, piece, moves, 1, -1);  // Down-Left
+        calculateLinearMoves(x, y, piece, moves, 1, 1);   // Down-Right
     }
 
-    private void calculateQueenMoves(int row, int col, int piece, List<int[]> moves) {
-        // Queen combines Rook and Bishop moves
-        calculateRookMoves(row, col, piece, moves);
-        calculateBishopMoves(row, col, piece, moves);
+    private void calculateQueenMoves(int x, int y, int piece, List<int[]> moves) {
+        // Queen uses Rook and Bishop moves
+        calculateRookMoves(x, y, piece, moves);
+        calculateBishopMoves(x, y, piece, moves);
     }
 
-    private void calculateKingMoves(int row, int col, int piece, List<int[]> moves) {
-        // Possible king move offsets
-        int[][] deltas = {
-                {-1, -1}, {-1, 0}, {-1, 1},
-                {0, -1},         {0, 1},
-                {1, -1}, {1, 0}, {1, 1}
-        };
+    private void calculateKingMoves(int x, int y, int piece, List<int[]> moves) {
+        // Possible king moves
+        int[][] possibilities = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 
-        for (int[] delta : deltas) {
-            int newRow = row + delta[0];
-            int newCol = col + delta[1];
+        for (int[] possibility : possibilities) {
+            int newX = x + possibility[0];
+            int newY = y + possibility[1];
 
-            // Validate within board bounds and check for empty or opponent's piece
-            if (isInBounds(newRow, newCol) &&
-                    (board[newRow][newCol] == 0 || Integer.signum(board[newRow][newCol]) != Integer.signum(piece))) {
-                moves.add(new int[]{newRow, newCol});
+            // Validate if is in bounds and not opponent in square
+            if (isInBounds(newX, newY) &&
+                    (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
+                moves.add(new int[]{newX, newY});
             }
         }
     }
 
-    private void calculateKnightMoves(int row, int col, int piece, List<int[]> moves) {
+    private void calculateKnightMoves(int x, int y, int piece, List<int[]> moves) {
         // Possible knight move offsets
-        int[][] deltas = {
-                {-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
-                {1, -2}, {1, 2}, {2, -1}, {2, 1}
-        };
+        int[][] possibilities = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
 
-        for (int[] delta : deltas) {
-            int newRow = row + delta[0];
-            int newCol = col + delta[1];
+        for (int[] possibility : possibilities) {
+            int newX = x + possibility[0];
+            int newY = y + possibility[1];
 
-            // Validate within board bounds and check for empty or opponent's piece
-            if (isInBounds(newRow, newCol) &&
-                    (board[newRow][newCol] == 0 || Integer.signum(board[newRow][newCol]) != Integer.signum(piece))) {
-                moves.add(new int[]{newRow, newCol});
+            // Validate bounds check empty or opponent
+            if (isInBounds(newX, newY) &&
+                    (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
+                moves.add(new int[]{newX, newY});
             }
         }
     }

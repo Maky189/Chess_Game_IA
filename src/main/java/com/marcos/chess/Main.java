@@ -16,17 +16,16 @@ public class Main extends Application {
     private final int WINDOWS_HEIGHT = 800;
 
     public static void main(String[] args) {
-
         launch();
     }
 
     @Override
     public void start(Stage stage) {
 
-        //Create the game
+
         Game game = new Game(SIZE);
 
-        //Create the components
+
         Canvas canvas = new Canvas(WINDOWS_WIDTH, WINDOWS_HEIGHT);
         StackPane container = new StackPane(canvas);
         container.setAlignment(Pos.CENTER);
@@ -38,14 +37,13 @@ public class Main extends Application {
 
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
 
-        //Handle game input mouse events
+        //Handle game mouse events
         DragHandler handler = new DragHandler(board, game, canvas);
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);
         canvas.setOnMouseDragged(handler::MouseDragged);
 
 
-        // Set up
         stage.setTitle("Chess");
         stage.setScene(scene);
         stage.show();
