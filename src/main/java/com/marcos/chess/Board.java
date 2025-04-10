@@ -95,7 +95,11 @@ public class Board {
 
                 if (highlights != null && isHighlighted(highlights, i, j)) {
                     gc.setFill(highlightColor);
-                    gc.fillRect(x1, y1, squareSize, squareSize);
+                    double centerX = x1 + squareSize / 2.0;
+                    double centerY = y1 + squareSize / 2.0;
+                    double radius = squareSize * 0.2;
+
+                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
                 }
 
                 Image piece = getImage(board[i][j]);
