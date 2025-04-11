@@ -75,6 +75,7 @@ public class Board {
         Color white = Color.WHITE;
         Color black = Color.BLACK;
         Color highlightColor = Color.BLUE;
+        Color captureHighlightColor = Color.LIGHTCORAL; // Light red
 
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, windowsWidth, windowsHeight);
@@ -94,16 +95,23 @@ public class Board {
                 gc.fillRect(x1, y1, squareSize, squareSize);
 
                 if (highlights != null && isHighlighted(highlights, i, j)) {
-                    gc.setFill(highlightColor);
-                    double centerX = x1 + squareSize / 2.0;
-                    double centerY = y1 + squareSize / 2.0;
-                    double radius = squareSize * 0.2;
+                    if (board[i][j] != 0) {
+                        // Enemy piece
+                        gc.setFill(captureHighlightColor);
+                        gc.fillRect(x1, y1, squareSize, squareSize);
+                    } else {
+                        // Normal highlight
+                        gc.setFill(highlightColor);
+                        double centerX = x1 + squareSize / 2.0;
+                        double centerY = y1 + squareSize / 2.0;
+                        double radius = squareSize * 0.2;
 
-                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+                        gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+                    }
                 }
 
                 Image piece = getImage(board[i][j]);
-                if(piece != null) {
+                if (piece != null) {
                     gc.drawImage(piece, x1, y1, squareSize, squareSize);
                 }
             }
@@ -121,25 +129,24 @@ public class Board {
     }
 
     private Image getImage(int piece) {
-        switch (piece) {
+        return switch (piece) {
             //White pieces
-            case 1: return pawnWhite;
-            case 2: return rookWhite;
-            case 3: return knightWhite;
-            case 4: return bishopWhite;
-            case 5: return queenWhite;
-            case 6: return kingWhite;
+            case 1 -> pawnWhite;
+            case 2 -> rookWhite;
+            case 3 -> knightWhite;
+            case 4 -> bishopWhite;
+            case 5 -> queenWhite;
+            case 6 -> kingWhite;
 
             //Black Pieces
-            case -1: return pawnBlack;
-            case -2: return rookBlack;
-            case -3: return knightBlack;
-            case -4: return bishopBlack;
-            case -5: return queenBlack;
-            case -6: return kingBlack;
-
-            default: return null;
-        }
+            case -1 -> pawnBlack;
+            case -2 -> rookBlack;
+            case -3 -> knightBlack;
+            case -4 -> bishopBlack;
+            case -5 -> queenBlack;
+            case -6 -> kingBlack;
+            default -> null;
+        };
     }
 
     public int getSquareSize() {
