@@ -32,12 +32,11 @@ public class Menu {
 
         
         StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
-        
 
         
         VBox layout = new VBox(20);
         layout.getChildren().addAll(startGameButton, multiplayerGameButton);
-        layout.setStyle("-fx-alignment: center; -fx-background-image: ");
+        layout.setStyle("-fx-alignment: center; -fx-background-image: path('/assets/board/cover.png');");
 
         // Create the scene
         Scene scene = new Scene(layout, windowsWidth, windowsHeight);
