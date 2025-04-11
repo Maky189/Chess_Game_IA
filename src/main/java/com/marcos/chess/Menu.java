@@ -26,19 +26,18 @@ public class Menu {
     public void showMenu() {
         primaryStage.setTitle("Chess Game Menu");
 
-        
+        // Start Game button
         StackPane startGameButton = createButton("Start Game", Color.BLUE, Color.DARKBLUE);
         startGameButton.setOnMouseClicked(e -> startGame());
-
         
+        // Multiplayer Game button
         StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
-
-        
+       
         VBox layout = new VBox(20);
         layout.getChildren().addAll(startGameButton, multiplayerGameButton);
-        layout.setStyle("-fx-alignment: center; -fx-background-image: path('/assets/board/cover.png');");
+        layout.setStyle("-fx-alignment: center; -fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
 
-        // Create the scene
+        // Create scene
         Scene scene = new Scene(layout, windowsWidth, windowsHeight);
 
         primaryStage.setScene(scene);
@@ -46,48 +45,42 @@ public class Menu {
     }
 
     private StackPane createButton(String text, Color defaultColor, Color hoverColor) {
-        
-        Rectangle rectangle = new Rectangle(300, 100);
+
+        Rectangle rectangle = new Rectangle(300, 100); 
         rectangle.setFill(defaultColor);
         rectangle.setArcWidth(20);
         rectangle.setArcHeight(20);
-
-        // Create the text for the button
+        
         Text buttonText = new Text(text);
         buttonText.setFill(Color.WHITE);
         buttonText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-
-        
+       
         StackPane button = new StackPane(rectangle, buttonText);
-        button.setOnMouseEntered(e -> rectangle.setFill(hoverColor));
-        button.setOnMouseExited(e -> rectangle.setFill(defaultColor));
+        button.setOnMouseEntered(e -> rectangle.setFill(hoverColor)); 
+        button.setOnMouseExited(e -> rectangle.setFill(defaultColor)); 
 
         return button;
     }
 
     private void startGame() {
-        
+        // Create gameboard
         int squareSize = 80;
         int size = 8;
 
         Game game = new Game(size);
         Board board = new Board(squareSize, size, windowsWidth, windowsHeight);
-
         
         Canvas canvas = new Canvas(windowsWidth, windowsHeight);
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
-
         
         DragHandler handler = new DragHandler(board, game, canvas);
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);
         canvas.setOnMouseDragged(handler::MouseDragged);
-
         
         StackPane gameLayout = new StackPane(canvas);
         Scene gameScene = new Scene(gameLayout, windowsWidth, windowsHeight);
 
-        
         primaryStage.setScene(gameScene);
     }
 }

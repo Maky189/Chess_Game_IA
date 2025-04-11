@@ -16,7 +16,6 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        // Launch the menu with the same window dimensions
         Menu menu = new Menu(stage, WINDOWS_WIDTH, WINDOWS_HEIGHT);
         menu.showMenu();
     }
