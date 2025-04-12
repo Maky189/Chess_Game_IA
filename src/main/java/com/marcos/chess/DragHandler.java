@@ -24,7 +24,7 @@ public class DragHandler {
         this.canvas = canvas;
     }
 
-    // Start dragging
+ 
     public void MousePressed(MouseEvent e) {
         int[][] board = game.getBoard();
         int[] pos = getCoord(e.getX(), e.getY());
@@ -34,13 +34,12 @@ public class DragHandler {
             fromY = pos[1];
             selectedPiece = board[fromX][fromY];
 
-            // Allow selection only if the piece belongs to the current player
+            
             if (selectedPiece != 0 && Integer.signum(selectedPiece) == currentPlayer) {
                 possibleMoves = game.calculatePossibleMoves(fromX, fromY);
                 redrawWithHighlight();
-                board[fromX][fromY] = 0; // Temporarily remove the piece
+                board[fromX][fromY] = 0; 
             } else {
-                // Clear selection if turn or piece is invalid
                 selectedPiece = 0;
                 clear();
             }
@@ -58,7 +57,6 @@ public class DragHandler {
         }
     }
 
-    //Mouse released
     public void MouseReleased(MouseEvent mouseEvent) {
         if (selectedPiece != 0) {
             int[][] board = game.getBoard();
@@ -68,29 +66,24 @@ public class DragHandler {
                 int x = pos[0];
                 int y = pos[1];
 
-                // Check if the target position is valid
                 boolean isValidMove = possibleMoves != null && possibleMoves.stream()
                         .anyMatch(move -> move[0] == x && move[1] == y);
 
                 if (isValidMove && Integer.signum(selectedPiece) == currentPlayer) {
-                    // Place the piece at the new position
                     board[x][y] = selectedPiece;
+
                     selectedPiece = 0;
 
-                    // Change player turn
                     changePlayer();
                 } else {
-                    // Invalid move: return piece to the original position
                     board[fromX][fromY] = selectedPiece;
                     selectedPiece = 0;
                 }
             } else {
-                // Invalid drop (outside the board): return piece to the original position
                 board[fromX][fromY] = selectedPiece;
                 selectedPiece = 0;
             }
 
-            // Clear move highlights and redraw the board
             possibleMoves = null;
             redraw();
         }
@@ -100,9 +93,7 @@ public class DragHandler {
         currentPlayer = -currentPlayer;
     }
 
-    // Redraw the board with the piece beign dragged
     private void drawDrag() {
-        // Clear the canvas before redrawing
         canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
         if (possibleMoves != null) {
@@ -121,10 +112,8 @@ public class DragHandler {
     }
 
     private void redraw() {
-        //Clear board
         canvas.getGraphicsContext2D().clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        //Update Board
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
     }
 

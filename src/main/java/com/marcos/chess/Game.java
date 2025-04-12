@@ -31,29 +31,29 @@ public class Game {
 
         //Set up pawns
         for (int i = 0; i < size; i++) {
-            this.board[1][i] = -1; //Black
-            this.board[6][i] = 1; //White
+            this.board[1][i] = -1; 
+            this.board[6][i] = 1; 
         }
 
         //Set up rooks
-        board[0][0] = board[0][7] = -2; //Black
-        board[7][0] = board[7][7] = 2; //White
+        board[0][0] = board[0][7] = -2; 
+        board[7][0] = board[7][7] = 2; 
 
         //Set up knights
-        board[0][1] = board[0][6] = -3; //Black
-        board[7][1] = board[7][6] = 3; //White
+        board[0][1] = board[0][6] = -3;
+        board[7][1] = board[7][6] = 3; 
 
         //Set up bishops
-        board[0][2] = board[0][5] = -4; //Black
-        board[7][2] = board[7][5] = 4; //White
+        board[0][2] = board[0][5] = -4;
+        board[7][2] = board[7][5] = 4; 
 
         //Set up queens
-        board[0][3] = -5; //Black
-        board[7][3] = 5; //White
+        board[0][3] = -5; 
+        board[7][3] = 5; 
 
         //Set up kings
-        board[0][4] = -6; //Black
-        board[7][4] = 6; //White
+        board[0][4] = -6;
+        board[7][4] = 6; 
 
     }
     public int[][] getBoard() {
@@ -67,28 +67,29 @@ public class Game {
     public List<int[]> calculatePossibleMoves(int x, int y) {
         int piece = board[x][y];
         if (piece == 0) {
-            return new ArrayList<>(); // No moves for an empty square
+            // No moves
+            return new ArrayList<>();
         }
 
         List<int[]> possibleMoves = new ArrayList<>();
 
         switch (Math.abs(piece)) {
-            case 1: // Pawn
+            case 1: 
                 calculatePawnMoves(x, y, piece, possibleMoves);
                 break;
-            case 2: // Rook
+            case 2: 
                 calculateRookMoves(x, y, piece, possibleMoves);
                 break;
-            case 3: // Knight
+            case 3: 
                 calculateKnightMoves(x, y, piece, possibleMoves);
                 break;
-            case 4: // Bishop
+            case 4: 
                 calculateBishopMoves(x, y, piece, possibleMoves);
                 break;
-            case 5: // Queen
+            case 5: 
                 calculateQueenMoves(x, y, piece, possibleMoves);
                 break;
-            case 6: // King
+            case 6: 
                 calculateKingMoves(x, y, piece, possibleMoves);
                 break;
         }
@@ -97,7 +98,7 @@ public class Game {
     }
 
     private void calculatePawnMoves(int x, int y, int piece, List<int[]> moves) {
-        int direction = (piece > 0) ? -1 : 1; // White moves up, black moves down
+        int direction = (piece > 0) ? -1 : 1;
 
         // Move one square d
         int newX = x + direction;
@@ -135,14 +136,12 @@ public class Game {
             }
             // If the square is occupied check if opponent
             else if (Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
-                moves.add(new int[]{newX, newY}); // Add opponent's piece
-                break; // Stop moves in this direction
+                moves.add(new int[]{newX, newY}); 
+                break; 
             } else {
-                // Friendly piece bloks
                 break;
             }
 
-            // Move further in this direction
             newX += DirX;
             newY += DirY;
         }
@@ -150,18 +149,18 @@ public class Game {
 
     private void calculateRookMoves(int x, int y, int piece, List<int[]> moves) {
         // Rook moves in straight lines horizontal and vertical
-        calculateLinearMoves(x, y, piece, moves, -1, 0); // Up
-        calculateLinearMoves(x, y, piece, moves, 1, 0);  // Down
-        calculateLinearMoves(x, y, piece, moves, 0, -1); // Left
-        calculateLinearMoves(x, y, piece, moves, 0, 1);  // Right
+        calculateLinearMoves(x, y, piece, moves, -1, 0); 
+        calculateLinearMoves(x, y, piece, moves, 1, 0);  
+        calculateLinearMoves(x, y, piece, moves, 0, -1); 
+        calculateLinearMoves(x, y, piece, moves, 0, 1);  
     }
 
     private void calculateBishopMoves(int x, int y, int piece, List<int[]> moves) {
         // Bishop moves diagonally
-        calculateLinearMoves(x, y, piece, moves, -1, -1); // Up-Left
-        calculateLinearMoves(x, y, piece, moves, -1, 1);  // Up-Right
-        calculateLinearMoves(x, y, piece, moves, 1, -1);  // Down-Left
-        calculateLinearMoves(x, y, piece, moves, 1, 1);   // Down-Right
+        calculateLinearMoves(x, y, piece, moves, -1, -1); 
+        calculateLinearMoves(x, y, piece, moves, -1, 1);
+        calculateLinearMoves(x, y, piece, moves, 1, -1); 
+        calculateLinearMoves(x, y, piece, moves, 1, 1);   
     }
 
     private void calculateQueenMoves(int x, int y, int piece, List<int[]> moves) {
@@ -187,14 +186,14 @@ public class Game {
     }
 
     private void calculateKnightMoves(int x, int y, int piece, List<int[]> moves) {
-        // Possible knight move offsets
+        // Possible knight moves
         int[][] possibilities = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};
 
         for (int[] possibility : possibilities) {
             int newX = x + possibility[0];
             int newY = y + possibility[1];
 
-            // Validate bounds check empty or opponent
+            // Validate indext
             if (isInBounds(newX, newY) &&
                     (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
                 moves.add(new int[]{newX, newY});
@@ -202,5 +201,42 @@ public class Game {
         }
     }
 
+    public boolean isKingInCheck(int player) {
+        int kingX = -1, kingY = -1;
+
+        // Find the king's position
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] == (player > 0 ? 6 : -6)) {
+                    kingX = i;
+                    kingY = j;
+                    break;
+                }
+            }
+        }
+
+        // If the king's position is not found, return false (shouldn't happen in a valid game)
+        if (kingX == -1 || kingY == -1) {
+            System.out.println("King not found for player: " + player);
+            return false;
+        }
+
+        // Check if any opponent piece can attack the king
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (Integer.signum(board[i][j]) != player && board[i][j] != 0) {
+                    List<int[]> moves = calculatePossibleMoves(i, j);
+                    for (int[] move : moves) {
+                        if (move[0] == kingX && move[1] == kingY) {
+                            System.out.println("King is in check! Player: " + player + ", Attacker: " + board[i][j]);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 
 }

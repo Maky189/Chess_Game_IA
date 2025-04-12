@@ -26,18 +26,15 @@ public class Menu {
     public void showMenu() {
         primaryStage.setTitle("Chess Game Menu");
 
-        // Start Game button
         StackPane startGameButton = createButton("Start Game", Color.BLUE, Color.DARKBLUE);
         startGameButton.setOnMouseClicked(e -> startGame());
         
-        // Multiplayer Game button
         StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
        
         VBox layout = new VBox(20);
         layout.getChildren().addAll(startGameButton, multiplayerGameButton);
         layout.setStyle("-fx-alignment: center; -fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
 
-        // Create scene
         Scene scene = new Scene(layout, windowsWidth, windowsHeight);
 
         primaryStage.setScene(scene);
@@ -63,7 +60,6 @@ public class Menu {
     }
 
     private void startGame() {
-        // Create gameboard
         int squareSize = 80;
         int size = 8;
 
