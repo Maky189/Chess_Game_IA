@@ -7,6 +7,7 @@ import javafx.scene.image.Image;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import java.util.List;
+import java.util.ArrayList;
 
 public class Board {
 
@@ -38,19 +39,26 @@ public class Board {
     public void drawBoard(GraphicsContext gc, int[][] board) {
         Color white = Color.WHITE;
         Color black = Color.BLACK;
+        Color checkColor = Color.DARKRED;
 
-        // Fill background
+        //background
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(0, 0, windowsWidth, windowsHeight);
 
         double x = (windowsWidth - size * squareSize) / 2.0;
         double y = (windowsHeight - size * squareSize) / 2.0;
 
+        // Find the positions of the kings
+        int[] whiteKingPos = findKingPosition(board, 6);
+        int[] blackKingPos = findKingPosition(board, -6);
+        boolean whiteKingInCheck = whiteKingPos != null && isCheck(board, whiteKingPos[0], whiteKingPos[1], -1);
+        boolean blackKingInCheck = blackKingPos != null && isCheck(board, blackKingPos[0], blackKingPos[1], 1);
+
         // Render chessboard
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 // Alternate colors
-                boolean isWhite = (i + j) % 2 == 0;
+                var isWhite = (i + j) % 2 == 0;
                 gc.setFill(isWhite ? white : black);
 
                 // Calculate position of square
@@ -58,6 +66,12 @@ public class Board {
                 double y1 = y + i * squareSize;
 
                 gc.fillRect(x1, y1, squareSize, squareSize);
+
+                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) ||
+                    (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
+                    gc.setFill(checkColor);
+                    gc.fillRect(x1, y1, squareSize, squareSize);
+                }
 
                 // Render the piece
                 Image piece = getImage(board[i][j]);
@@ -68,7 +82,6 @@ public class Board {
         }
 
         drawcoords(gc, x, y);
-
     }
 
     public void drawcoords(GraphicsContext gc, double x, double y) {
@@ -84,7 +97,7 @@ public class Board {
             gc.fillText(letter, letterX, letterYBottom);
         }
 
-            // Add vertical numbers
+        // Add vertical numbers
         for (int i = 0; i < size; i++) {
             String number = String.valueOf(size - i);
             double numberX = x - squareSize * 0.4;
@@ -99,25 +112,35 @@ public class Board {
         Color black = Color.BLACK;
         Color highlightColor = Color.BLUE;
         Color captureHighlightColor = Color.LIGHTCORAL;
+        Color checkColor = Color.DARKRED;
 
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(0, 0, windowsWidth, windowsHeight);
 
         double x = (windowsWidth - size * squareSize) / 2.0;
         double y = (windowsHeight - size * squareSize) / 2.0;
-        
-        
+
+        int[] whiteKingPos = findKingPosition(board, 6);
+        int[] blackKingPos = findKingPosition(board, -6);
+
+        boolean whiteKingInCheck = whiteKingPos != null && isCheck(board, whiteKingPos[0], whiteKingPos[1], -1);
+        boolean blackKingInCheck = blackKingPos != null && isCheck(board, blackKingPos[0], blackKingPos[1], 1);
 
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-
                 boolean isWhite = (i + j) % 2 == 0;
-                gc.setFill(isWhite ? white : black);
+                if (!isWhite) gc.setFill(black);
+                else gc.setFill(white);
 
                 double x1 = x + j * squareSize;
                 double y1 = y + i * squareSize;
 
                 gc.fillRect(x1, y1, squareSize, squareSize);
+                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) ||
+                    (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
+                    gc.setFill(checkColor);
+                    gc.fillRect(x1, y1, squareSize, squareSize);
+                }
 
                 if (highlights != null && isHighlighted(highlights, i, j)) {
                     if (board[i][j] != 0) {
@@ -141,67 +164,39 @@ public class Board {
         }
 
         drawcoords(gc, x, y);
-
     }
 
-    public void drawBoardWithHighlights(GraphicsContext gc, int[][] board, List<int[]> highlights, Game game) {
-        Color white = Color.WHITE;
-        Color black = Color.BLACK;
-        Color highlightColor = Color.BLUE;
-        Color captureHighlightColor = Color.LIGHTCORAL;
-        Color checkColor = Color.RED;
-
-        gc.setFill(Color.LIGHTBLUE);
-        gc.fillRect(0, 0, windowsWidth, windowsHeight);
-
-        double x = (windowsWidth - size * squareSize) / 2.0;
-        double y = (windowsHeight - size * squareSize) / 2.0;
-
-        boolean isWhiteKingInCheck = game.isKingInCheck(1);
-        boolean isBlackKingInCheck = game.isKingInCheck(-1);
-
+    private int[] findKingPosition(int[][] board, int kingValue) {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                boolean isWhite = (i + j) % 2 == 0;
-                gc.setFill(isWhite ? white : black);
-
-                double x1 = x + j * squareSize;
-                double y1 = y + i * squareSize;
-
-                gc.fillRect(x1, y1, squareSize, squareSize);
-
-                if (isWhiteKingInCheck && board[i][j] == 6) {
-                    gc.setFill(checkColor);
-                    gc.fillRect(x1, y1, squareSize, squareSize);
-                }
-
-                if (isBlackKingInCheck && board[i][j] == -6) {
-                    gc.setFill(checkColor);
-                    gc.fillRect(x1, y1, squareSize, squareSize);
-                }
-
-                if (highlights != null && isHighlighted(highlights, i, j)) {
-                    if (board[i][j] != 0) {
-                        gc.setFill(captureHighlightColor);
-                        gc.fillRect(x1, y1, squareSize, squareSize);
-                    } else {
-                        gc.setFill(highlightColor);
-                        double centerX = x1 + squareSize / 2.0;
-                        double centerY = y1 + squareSize / 2.0;
-                        double radius = squareSize * 0.2;
-
-                        gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-                    }
-                }
-
-                Image piece = getImage(board[i][j]);
-                if (piece != null) {
-                    gc.drawImage(piece, x1, y1, squareSize, squareSize);
+                if (board[i][j] == kingValue) {
+                    return new int[]{i, j};
                 }
             }
         }
+        return null;
+    }
 
-        drawcoords(gc, x, y);
+    private boolean isCheck(int[][] board, int kingX, int kingY, int opponentSign) {
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (Integer.signum(board[i][j]) == opponentSign) {
+                    List<int[]> possibleMoves = calculatePossibleMoves(board, i, j);
+                    for (int[] move : possibleMoves) {
+                        if (move[0] == kingX && move[1] == kingY) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<int[]> calculatePossibleMoves(int[][] board, int x, int y) {
+        Game tempGame = new Game(8);
+        tempGame.setBoard(board);
+        return tempGame.calculatePossibleMoves(x, y);
     }
 
     private boolean isHighlighted(List<int[]> highlights, int i, int j) {
