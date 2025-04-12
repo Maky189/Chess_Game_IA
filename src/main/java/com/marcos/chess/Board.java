@@ -157,7 +157,6 @@ public class Board {
         double x = (windowsWidth - size * squareSize) / 2.0;
         double y = (windowsHeight - size * squareSize) / 2.0;
 
-        // Check if the kings are in check
         boolean isWhiteKingInCheck = game.isKingInCheck(1);
         boolean isBlackKingInCheck = game.isKingInCheck(-1);
 
@@ -171,13 +170,11 @@ public class Board {
 
                 gc.fillRect(x1, y1, squareSize, squareSize);
 
-                // Highlight the square of the white king if in check
                 if (isWhiteKingInCheck && board[i][j] == 6) {
                     gc.setFill(checkColor);
                     gc.fillRect(x1, y1, squareSize, squareSize);
                 }
 
-                // Highlight the square of the black king if in check
                 if (isBlackKingInCheck && board[i][j] == -6) {
                     gc.setFill(checkColor);
                     gc.fillRect(x1, y1, squareSize, squareSize);

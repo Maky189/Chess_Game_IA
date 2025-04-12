@@ -204,7 +204,6 @@ public class Game {
     public boolean isKingInCheck(int player) {
         int kingX = -1, kingY = -1;
 
-        // Find the king's position
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 if (board[i][j] == (player > 0 ? 6 : -6)) {
@@ -215,13 +214,11 @@ public class Game {
             }
         }
 
-        // If the king's position is not found, return false (shouldn't happen in a valid game)
         if (kingX == -1 || kingY == -1) {
             System.out.println("King not found for player: " + player);
             return false;
         }
 
-        // Check if any opponent piece can attack the king
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 if (Integer.signum(board[i][j]) != player && board[i][j] != 0) {
