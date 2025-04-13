@@ -27,9 +27,10 @@ public class Menu {
         primaryStage.setTitle("Chess Game Menu");
 
         StackPane startGameButton = createButton("Start Game", Color.BLUE, Color.DARKBLUE);
-        startGameButton.setOnMouseClicked(e -> startGame());
+        startGameButton.setOnMouseClicked(e -> startGame(false));
         
         StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
+        multiplayerGameButton.setOnMouseClicked(e -> startGame(true));
        
         VBox layout = new VBox(20);
         layout.getChildren().addAll(startGameButton, multiplayerGameButton);
@@ -59,7 +60,7 @@ public class Menu {
         return button;
     }
 
-    private void startGame() {
+    private void startGame(boolean isMultiplayer) {
         int squareSize = 80;
         int size = 8;
 
@@ -69,7 +70,7 @@ public class Menu {
         Canvas canvas = new Canvas(windowsWidth, windowsHeight);
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
         
-        DragHandler handler = new DragHandler(board, game, canvas);
+        DragHandler handler = new DragHandler(board, game, canvas, isMultiplayer);
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);
         canvas.setOnMouseDragged(handler::MouseDragged);

@@ -18,12 +18,14 @@ public class DragHandler {
     private List<int[]> possibleMoves = null;
     private int currentPlayer = 1;
     private final IA ia;
+    private final boolean isMultiplayer;
 
-    public DragHandler(Board board, Game game, Canvas canvas) {
+    public DragHandler(Board board, Game game, Canvas canvas, boolean isMultiplayer) {
         this.board = board;
         this.game = game;
         this.canvas = canvas;
         this.ia = new IA();
+        this.isMultiplayer = isMultiplayer;
     }
 
  
@@ -75,9 +77,13 @@ public class DragHandler {
                     board[x][y] = selectedPiece;
                     selectedPiece = 0;
 
-                    if(currentPlayer == 1) {
+                    if(!isMultiplayer && currentPlayer == 1) {
                         changePlayer();
-                        ia.makeMove(game);
+                        ia.makeMove(game, -1);
+                        changePlayer();
+                        redraw();
+                    }
+                    else {
                         changePlayer();
                         redraw();
                     }

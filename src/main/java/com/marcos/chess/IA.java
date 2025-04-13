@@ -7,9 +7,9 @@ import java.util.Random;
 public class IA {
     private final Random random = new Random();
 
-    public void makeMove(Game game) {
+    public void makeMove(Game game, int player) {
         int[][] board = game.getBoard();
-        List<Move> possibleMoves = getAllPossibleMoves(game, board, -1);
+        List<Move> possibleMoves = getAllPossibleMoves(game, board, player);
         if (!possibleMoves.isEmpty()) {
             Move selectedMove = possibleMoves.get(random.nextInt(possibleMoves.size()));
 
