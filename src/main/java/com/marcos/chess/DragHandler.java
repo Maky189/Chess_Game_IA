@@ -17,11 +17,13 @@ public class DragHandler {
     private double toY = 0;
     private List<int[]> possibleMoves = null;
     private int currentPlayer = 1;
+    private final IA ia;
 
     public DragHandler(Board board, Game game, Canvas canvas) {
         this.board = board;
         this.game = game;
         this.canvas = canvas;
+        this.ia = new IA();
     }
 
  
@@ -71,10 +73,14 @@ public class DragHandler {
 
                 if (isValidMove && Integer.signum(selectedPiece) == currentPlayer) {
                     board[x][y] = selectedPiece;
-
                     selectedPiece = 0;
 
-                    changePlayer();
+                    if(currentPlayer == 1) {
+                        changePlayer();
+                        ia.makeMove(game);
+                        changePlayer();
+                        redraw();
+                    }
                 } else {
                     board[fromX][fromY] = selectedPiece;
                     selectedPiece = 0;
