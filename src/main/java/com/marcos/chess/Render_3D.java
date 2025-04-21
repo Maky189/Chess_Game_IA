@@ -90,16 +90,16 @@ public class Render_3D implements Renderer {
         public void simpleInitApp() {
             // Initialize materials first
             initializeMaterials();
-            
+
             // Set up camera
             setupCamera();
-            
+
             // Set up lighting
             setupLighting();
-            
+
             // Add mouse input handling
             setupInputHandling();
-            
+
             // Create board
             boardNode = createChessBoard(game);
             rootNode.attachChild(boardNode);
@@ -122,6 +122,11 @@ public class Render_3D implements Renderer {
         }
 
         private void setupCamera() {
+            cam.setLocation(new Vector3f(0, 10, 7));
+            cam.lookAt(Vector3f.ZERO, Vector3f.ZERO);
+        }
+
+        private void setupCameraMultiplayer() {
             cam.setLocation(new Vector3f(0, 10, 7));
             cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
         }
@@ -148,12 +153,12 @@ public class Render_3D implements Renderer {
 
         private void setupInputHandling() {
             // Disable the default fly camera controls
-            flyCam.setEnabled(false);
-            
+            flyCam.setEnabled(true);
+
             // Add our custom mouse mapping
             inputManager.addMapping("Select", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
             inputManager.addListener(actionListener, "Select");
-            
+
             // Set up cursor visibility
             inputManager.setCursorVisible(true);
         }
@@ -172,7 +177,7 @@ public class Render_3D implements Renderer {
                     if (results.size() > 0) {
                         Geometry target = results.getClosestCollision().getGeometry();
                         if (target == null) return;
-                        
+
                         // Only process squares (they have names like "square_row_col")
                         String[] parts = target.getName().split("_");
                         if (parts.length == 3 && parts[0].equals("square")) {
@@ -185,10 +190,7 @@ public class Render_3D implements Renderer {
                                 if (piece != 0 && Integer.signum(piece) == currentPlayer) {
                                     // Find the piece node at this position
                                     for (Spatial child : boardNode.getChildren()) {
-                                        if (child instanceof Node && 
-                                            child.getLocalTranslation().x == (col - 3.5f) && 
-                                            child.getLocalTranslation().z == (row - 3.5f) && 
-                                            !(child instanceof Geometry)) {
+                                        if (child instanceof Node && child.getLocalTranslation().x == col - 3.5f && child.getLocalTranslation().z == row - 3.5f) {
                                             selectedPieceNode = (Node) child;
                                             selectedPosition = new int[]{row, col};
                                             clearHighlights();
@@ -223,6 +225,10 @@ public class Render_3D implements Renderer {
 
                                     // Change player
                                     currentPlayer = -currentPlayer;
+
+                                    if (currentPlayer == -1 && isMultiplayer) {
+                                        setupCameraMultiplayer();
+                                    }
 
                                     // AI move if not multiplayer
                                     if (!isMultiplayer && currentPlayer == -1) {
