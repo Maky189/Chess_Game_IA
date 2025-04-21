@@ -116,7 +116,9 @@ public class Render_3D implements Renderer {
 
             highlightMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
             highlightMaterial.setColor("Diffuse", new ColorRGBA(0, 0, 1f, 0.5f));
+            highlightMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.5f, 0.5f));
             highlightMaterial.setBoolean("UseMaterialColors", true);
+            highlightMaterial.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         }
 
         private void setupCamera() {
@@ -145,8 +147,15 @@ public class Render_3D implements Renderer {
         }
 
         private void setupInputHandling() {
+            // Disable the default fly camera controls
+            flyCam.setEnabled(false);
+            
+            // Add our custom mouse mapping
             inputManager.addMapping("Select", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
             inputManager.addListener(actionListener, "Select");
+            
+            // Set up cursor visibility
+            inputManager.setCursorVisible(true);
         }
 
         private final ActionListener actionListener = (name, pressed, tpf) -> {
@@ -158,38 +167,39 @@ public class Render_3D implements Renderer {
 
                     Ray ray = new Ray(click3d, dir);
                     CollisionResults results = new CollisionResults();
-                    rootNode.collideWith(ray, results);
+                    boardNode.collideWith(ray, results); // Only check collision with board node
 
                     if (results.size() > 0) {
                         Geometry target = results.getClosestCollision().getGeometry();
                         if (target == null) return;
                         
+                        // Only process squares (they have names like "square_row_col")
                         String[] parts = target.getName().split("_");
-
-                        if (parts.length == 3) {
+                        if (parts.length == 3 && parts[0].equals("square")) {
                             int row = Integer.parseInt(parts[1]);
                             int col = Integer.parseInt(parts[2]);
+                            int piece = game.getBoard()[row][col];
 
                             if (selectedPieceNode == null) {
-                                // First click - Select piece
-                                if (game.getBoard()[row][col] != 0 && 
-                                    Integer.signum(game.getBoard()[row][col]) == currentPlayer) {
-                                    selectedPosition = new int[]{row, col};
+                                // First click - Check if square has a piece of current player
+                                if (piece != 0 && Integer.signum(piece) == currentPlayer) {
+                                    // Find the piece node at this position
                                     for (Spatial child : boardNode.getChildren()) {
                                         if (child instanceof Node && 
                                             child.getLocalTranslation().x == (col - 3.5f) && 
                                             child.getLocalTranslation().z == (row - 3.5f) && 
                                             !(child instanceof Geometry)) {
                                             selectedPieceNode = (Node) child;
+                                            selectedPosition = new int[]{row, col};
+                                            clearHighlights();
+                                            currentHighlights = game.calculatePossibleMoves(row, col);
+                                            highlightSquares();
                                             break;
                                         }
                                     }
-                                    clearHighlights();
-                                    currentHighlights = game.calculatePossibleMoves(row, col);
-                                    highlightSquares();
                                 }
                             } else {
-                                // Second click - Move piece
+                                // Second click - Try to move piece
                                 boolean isValidMove = false;
                                 if (currentHighlights != null) {
                                     for (int[] move : currentHighlights) {
@@ -231,6 +241,7 @@ public class Render_3D implements Renderer {
                     }
                 } catch (Exception e) {
                     System.err.println("Error in mouse selection: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         };
@@ -280,10 +291,11 @@ public class Render_3D implements Renderer {
         private void highlightSquares() {
             if (currentHighlights != null) {
                 for (int[] pos : currentHighlights) {
-                    String name = "square_" + pos[0] + "_" + pos[1];
-                    Geometry square = (Geometry) boardNode.getChild(name);
-                    if (square != null) {
-                        square.setMaterial(highlightMaterial);
+                    // Make sure we're using the correct naming convention
+                    String squareName = "square_" + pos[0] + "_" + pos[1];
+                    Spatial square = boardNode.getChild(squareName);
+                    if (square instanceof Geometry) {
+                        ((Geometry) square).setMaterial(highlightMaterial);
                     }
                 }
             }
@@ -291,26 +303,29 @@ public class Render_3D implements Renderer {
 
         private Node createChessBoard(Game game) {
             Node boardNode = new Node("chessBoard");
-
             float squareSize = 1.0f;
+            
             for (int row = 0; row < 8; row++) {
                 for (int col = 0; col < 8; col++) {
                     Box square = new Box(squareSize / 2, 0.1f, squareSize / 2);
                     Geometry squareGeo = new Geometry("square_" + row + "_" + col, square);
-
+                    
+                    // Enable collision detection
+                    squareGeo.setUserData("row", row);
+                    squareGeo.setUserData("col", col);
+                    
+                    // Set material
                     squareGeo.setMaterial((row + col) % 2 == 0 ? whiteMaterial : blackMaterial);
-
+                    
+                    // Position square
                     float x = (col - 3.5f) * squareSize;
                     float z = (row - 3.5f) * squareSize;
                     squareGeo.setLocalTranslation(x, 0, z);
-
-                    squareGeo.setUserData("row", row);
-                    squareGeo.setUserData("col", col);
-
+                    
                     boardNode.attachChild(squareGeo);
                 }
             }
-
+            
             int[][] board = game.getBoard();
             for (int i = 0; i < board.length; i++) {
                 for (int j = 0; j < board[i].length; j++) {
@@ -326,7 +341,7 @@ public class Render_3D implements Renderer {
                     }
                 }
             }
-
+            
             return boardNode;
         }
 
