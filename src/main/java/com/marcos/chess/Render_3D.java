@@ -44,7 +44,7 @@ public class Render_3D implements Renderer {
     @Override
     public Scene createGameScene(Game game, int windowsWidth, int windowsHeight, boolean isMultiplayer) {
         this.currentGame = game;
-        chessApp = new ChessGame(game, isMultiplayer); // Pass the Game instance and isMultiplayer flag
+        chessApp = new ChessGame(game, isMultiplayer);
         AppSettings settings = new AppSettings(true);
 
         settings.setFullscreen(true);
@@ -88,19 +88,10 @@ public class Render_3D implements Renderer {
 
         @Override
         public void simpleInitApp() {
-            // Initialize materials first
             initializeMaterials();
-
-            // Set up camera
             setupCamera();
-
-            // Set up lighting
             setupLighting();
-
-            // Add mouse input handling
             setupInputHandling();
-
-            // Create board
             boardNode = createChessBoard(game);
             rootNode.attachChild(boardNode);
         }
@@ -152,18 +143,18 @@ public class Render_3D implements Renderer {
         }
 
         private void setupInputHandling() {
-            // Disable the default fly camera controls
-            flyCam.setEnabled(true);
+            // Setup Camera for my debug
+            flyCam.setEnabled(false);
 
-            // Add our custom mouse mapping
             inputManager.addMapping("Select", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
             inputManager.addListener(actionListener, "Select");
 
-            // Set up cursor visibility
+            // visibility of mouse
             inputManager.setCursorVisible(true);
         }
 
         private final ActionListener actionListener = (name, pressed, tpf) -> {
+            //Check for user input on mouse
             if (name.equals("Select") && !pressed) {
                 try {
                     Vector2f click2d = inputManager.getCursorPosition();
@@ -172,13 +163,12 @@ public class Render_3D implements Renderer {
 
                     Ray ray = new Ray(click3d, dir);
                     CollisionResults results = new CollisionResults();
-                    boardNode.collideWith(ray, results); // Only check collision with board node
+                    boardNode.collideWith(ray, results);
 
                     if (results.size() > 0) {
                         Geometry target = results.getClosestCollision().getGeometry();
                         if (target == null) return;
 
-                        // Only process squares (they have names like "square_row_col")
                         String[] parts = target.getName().split("_");
                         if (parts.length == 3 && parts[0].equals("square")) {
                             int row = Integer.parseInt(parts[1]);
@@ -186,9 +176,7 @@ public class Render_3D implements Renderer {
                             int piece = game.getBoard()[row][col];
 
                             if (selectedPieceNode == null) {
-                                // First click - Check if square has a piece of current player
                                 if (piece != 0 && Integer.signum(piece) == currentPlayer) {
-                                    // Find the piece node at this position
                                     for (Spatial child : boardNode.getChildren()) {
                                         if (child instanceof Node && child.getLocalTranslation().x == col - 3.5f && child.getLocalTranslation().z == row - 3.5f) {
                                             selectedPieceNode = (Node) child;
@@ -201,7 +189,6 @@ public class Render_3D implements Renderer {
                                     }
                                 }
                             } else {
-                                // Second click - Try to move piece
                                 boolean isValidMove = false;
                                 if (currentHighlights != null) {
                                     for (int[] move : currentHighlights) {
@@ -213,7 +200,6 @@ public class Render_3D implements Renderer {
                                 }
 
                                 if (isValidMove) {
-                                    // Move piece
                                     game.getBoard()[row][col] = game.getBoard()[selectedPosition[0]][selectedPosition[1]];
                                     game.getBoard()[selectedPosition[0]][selectedPosition[1]] = 0;
                                     
@@ -238,7 +224,6 @@ public class Render_3D implements Renderer {
                                     }
                                 }
 
-                                // Reset selection
                                 selectedPieceNode = null;
                                 selectedPosition = null;
                                 clearHighlights();
@@ -253,14 +238,12 @@ public class Render_3D implements Renderer {
         };
 
         private void updateBoardVisuals() {
-            // Remove all piece nodes
             for (Spatial child : boardNode.getChildren().toArray(new Spatial[0])) {
                 if (child.getName() != null && child.getName().startsWith("piece_")) {
                     boardNode.detachChild(child);
                 }
             }
 
-            // Recreate pieces based on current board state
             int[][] board = game.getBoard();
             for (int i = 0; i < board.length; i++) {
                 for (int j = 0; j < board[i].length; j++) {
@@ -278,7 +261,6 @@ public class Render_3D implements Renderer {
 
         private void clearHighlights() {
             if (currentHighlights != null) {
-                // Restore original materials
                 for (Spatial child : boardNode.getChildren()) {
                     if (child instanceof Geometry geo) {
                         String[] parts = geo.getName().split("_");
@@ -297,7 +279,6 @@ public class Render_3D implements Renderer {
         private void highlightSquares() {
             if (currentHighlights != null) {
                 for (int[] pos : currentHighlights) {
-                    // Make sure we're using the correct naming convention
                     String squareName = "square_" + pos[0] + "_" + pos[1];
                     Spatial square = boardNode.getChild(squareName);
                     if (square instanceof Geometry) {
@@ -315,15 +296,12 @@ public class Render_3D implements Renderer {
                 for (int col = 0; col < 8; col++) {
                     Box square = new Box(squareSize / 2, 0.1f, squareSize / 2);
                     Geometry squareGeo = new Geometry("square_" + row + "_" + col, square);
-                    
-                    // Enable collision detection
+
                     squareGeo.setUserData("row", row);
                     squareGeo.setUserData("col", col);
-                    
-                    // Set material
+
                     squareGeo.setMaterial((row + col) % 2 == 0 ? whiteMaterial : blackMaterial);
-                    
-                    // Position square
+
                     float x = (col - 3.5f) * squareSize;
                     float z = (row - 3.5f) * squareSize;
                     squareGeo.setLocalTranslation(x, 0, z);
@@ -373,11 +351,10 @@ public class Render_3D implements Renderer {
             }
 
             if (pieceNode != null) {
-                pieceNode.setName("piece_" + piece); // Add unique name for each piece
+                pieceNode.setName("piece_" + piece);
 
                 Material material = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
 
-                // textures
                 if (piece > 0) {
                     material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "piece_white.png"));
                     material.setColor("Ambient", new ColorRGBA(0.8f, 0.8f, 0.8f, 1.0f));
@@ -394,11 +371,9 @@ public class Render_3D implements Renderer {
                 material.setTransparent(false);
                 material.setFloat("Shininess", 64f);
 
-                // 🔥 Force opaque rendering
                 material.getAdditionalRenderState().setBlendMode(BlendMode.Off);
                 pieceNode.setQueueBucket(RenderQueue.Bucket.Opaque);
 
-                // Apply material to all geometries in the model
                 pieceNode.depthFirstTraversal(spatial -> {
                     if (spatial instanceof Geometry) {
                         ((Geometry) spatial).setMaterial(material);
@@ -413,7 +388,6 @@ public class Render_3D implements Renderer {
     @Override
     public void cleanup() {
         if (chessApp != null) {
-            // Materials are managed by the ChessGame class, not the Renderer
             chessApp.stop(true);
         }
     }
