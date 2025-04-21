@@ -1,12 +1,9 @@
 package com.marcos.chess;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Alert;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -22,13 +19,13 @@ public class Menu {
     private final int windowsWidth;
     private final int windowsHeight;
     private boolean is3DMode = false;
-    private GameRenderer currentRenderer;
+    private Renderer currentRenderer;
 
     public Menu(Stage primaryStage, int windowsWidth, int windowsHeight) {
         this.primaryStage = primaryStage;
         this.windowsWidth = windowsWidth;
         this.windowsHeight = windowsHeight;
-        this.currentRenderer = new TwoDRenderer(windowsWidth, windowsHeight);
+        this.currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
     }
 
     public void showMenu() {
@@ -40,34 +37,38 @@ public class Menu {
         StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
         multiplayerGameButton.setOnMouseClicked(e -> startGame(true));
 
-        // Update the 3D button click handler
-        StackPane threeDButton = createButton("3D", Color.GRAY, Color.GREEN, 100, 50);
-        threeDButton.setOnMouseClicked(e -> {
-            is3DMode = !is3DMode;
-            if (is3DMode) {
-                currentRenderer = new ThreeDRenderer(windowsWidth, windowsHeight);
-            } else {
-                currentRenderer = new TwoDRenderer(windowsWidth, windowsHeight);
+        StackPane Button_3D = createButton("3D", Color.GRAY, Color.GREEN, 100, 50);
+        Button_3D.setOnMouseClicked(e -> {
+            try {
+                is3DMode = !is3DMode;
+                if(is3DMode) {
+                    currentRenderer.cleanup();
+                    currentRenderer = new Render_3D(windowsWidth, windowsHeight);
+                }
+                else {
+                    currentRenderer.cleanup();
+                    currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
+                }
             }
-            String mode = is3DMode ? "3D" : "2D";
-            show3DMessage(mode);
+            catch (Exception ex) {
+                currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
+            }
         });
         
         VBox mainButtons = new VBox(20);
         mainButtons.getChildren().addAll(startGameButton, multiplayerGameButton);
         mainButtons.setAlignment(Pos.CENTER);
 
-        // Use AnchorPane as root to allow absolute positioning
         AnchorPane root = new AnchorPane();
-        root.getChildren().addAll(mainButtons, threeDButton);
+        root.getChildren().addAll(mainButtons, Button_3D);
         
-        // Position the main buttons in center
+
         AnchorPane.setTopAnchor(mainButtons, (windowsHeight - mainButtons.getPrefHeight()) / 2);
         AnchorPane.setLeftAnchor(mainButtons, (double) (windowsWidth - 300) / 2); // 300 is the width of main buttons
         
-        // Position 3D button in top-left corner
-        AnchorPane.setTopAnchor(threeDButton, 20.0);
-        AnchorPane.setLeftAnchor(threeDButton, 20.0);
+
+        AnchorPane.setTopAnchor(Button_3D, 20.0);
+        AnchorPane.setLeftAnchor(Button_3D, 20.0);
         
         root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
 
@@ -95,7 +96,7 @@ public class Menu {
         return button;
     }
 
-    // Add overloaded createButton method for custom size buttons
+
     private StackPane createButton(String text, Color defaultColor, Color hoverColor, double width, double height) {
         Rectangle rectangle = new Rectangle(width, height); 
         rectangle.setFill(defaultColor);
@@ -113,13 +114,7 @@ public class Menu {
         return button;
     }
 
-    private void show3DMessage(String mode) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Game Mode");
-        alert.setHeaderText(null);
-        alert.setContentText(mode + " mode enabled");
-        alert.showAndWait();
-    }
+
 
     private void startGame(boolean isMultiplayer) {
         Game game = new Game(8);

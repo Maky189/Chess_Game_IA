@@ -4,13 +4,13 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.StackPane;
 
-public class TwoDRenderer implements GameRenderer {
+public class Renderer_2D implements Renderer {
     private final int windowsWidth;
     private final int windowsHeight;
     private Canvas canvas;
     private DragHandler handler;
 
-    public TwoDRenderer(int windowsWidth, int windowsHeight) {
+    public Renderer_2D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
         this.windowsHeight = windowsHeight;
     }
@@ -35,11 +35,9 @@ public class TwoDRenderer implements GameRenderer {
 
     @Override
     public void initialize() {
-        // No initialization needed for 2D renderer
     }
 
     @Override
     public void cleanup() {
-        // No cleanup needed for 2D renderer
     }
 }
