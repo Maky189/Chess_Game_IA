@@ -177,7 +177,7 @@ public class Board {
         return null;
     }
 
-    private boolean isCheck(int[][] board, int kingX, int kingY, int opponentSign) {
+    public boolean isCheck(int[][] board, int kingX, int kingY, int opponentSign) {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 if (Integer.signum(board[i][j]) == opponentSign) {
@@ -250,4 +250,13 @@ public class Board {
         return getImage(piece);
     }
 
+    public double getSquareCenterX(int row, int col) {
+        double boardStartX = (windowsWidth - (size * squareSize)) / 2.0;
+        return boardStartX + (col * squareSize) + (squareSize / 2.0);
+    }
+
+    public double getSquareCenterY(int row, int col) {
+        double boardStartY = (windowsHeight - (size * squareSize)) / 2.0;
+        return boardStartY + (row * squareSize) + (squareSize / 2.0);
+    }
 }

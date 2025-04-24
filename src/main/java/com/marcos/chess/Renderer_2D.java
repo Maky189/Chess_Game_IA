@@ -2,6 +2,7 @@ package com.marcos.chess;
 
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 
 public class Renderer_2D implements Renderer {
@@ -9,6 +10,7 @@ public class Renderer_2D implements Renderer {
     private final int windowsHeight;
     private Canvas canvas;
     private DragHandler handler;
+    private Pane pieceLayer;
 
     public Renderer_2D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
@@ -22,15 +24,29 @@ public class Renderer_2D implements Renderer {
         
         Board board = new Board(squareSize, size, windowsWidth, windowsHeight);
         canvas = new Canvas(windowsWidth, windowsHeight);
+        
+        // Create and configure piece layer
+        pieceLayer = new Pane();
+        pieceLayer.setMouseTransparent(true);
+        pieceLayer.setPrefSize(windowsWidth, windowsHeight);
+        
+        // Initial board draw
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
         
-        handler = new DragHandler(board, game, canvas, isMultiplayer);
+        // Create handler
+        handler = new DragHandler(board, game, canvas, pieceLayer, isMultiplayer);
+        
+        // Set up mouse events
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);
         canvas.setOnMouseDragged(handler::MouseDragged);
         
-        StackPane gameLayout = new StackPane(canvas);
-        return new Scene(gameLayout, windowsWidth, windowsHeight);
+        // Create layout with proper stacking
+        StackPane gameLayout = new StackPane();
+        gameLayout.getChildren().addAll(canvas, pieceLayer);
+        
+        Scene scene = new Scene(gameLayout, windowsWidth, windowsHeight);
+        return scene;
     }
 
     @Override
@@ -39,5 +55,8 @@ public class Renderer_2D implements Renderer {
 
     @Override
     public void cleanup() {
+        if (pieceLayer != null) {
+            pieceLayer.getChildren().clear();
+        }
     }
 }

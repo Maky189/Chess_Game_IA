@@ -202,11 +202,11 @@ public class Render_3D implements Renderer {
                                 if (isValidMove) {
                                     game.getBoard()[row][col] = game.getBoard()[selectedPosition[0]][selectedPosition[1]];
                                     game.getBoard()[selectedPosition[0]][selectedPosition[1]] = 0;
-                                    
+
                                     selectedPieceNode.setLocalTranslation(
-                                        (col - 3.5f), 
-                                        0.2f, 
-                                        (row - 3.5f)
+                                            (col - 3.5f),
+                                            0.2f,
+                                            (row - 3.5f)
                                     );
 
                                     // Change player
@@ -291,7 +291,7 @@ public class Render_3D implements Renderer {
         private Node createChessBoard(Game game) {
             Node boardNode = new Node("chessBoard");
             float squareSize = 1.0f;
-            
+
             for (int row = 0; row < 8; row++) {
                 for (int col = 0; col < 8; col++) {
                     Box square = new Box(squareSize / 2, 0.1f, squareSize / 2);
@@ -305,11 +305,11 @@ public class Render_3D implements Renderer {
                     float x = (col - 3.5f) * squareSize;
                     float z = (row - 3.5f) * squareSize;
                     squareGeo.setLocalTranslation(x, 0, z);
-                    
+
                     boardNode.attachChild(squareGeo);
                 }
             }
-            
+
             int[][] board = game.getBoard();
             for (int i = 0; i < board.length; i++) {
                 for (int j = 0; j < board[i].length; j++) {
@@ -325,7 +325,7 @@ public class Render_3D implements Renderer {
                     }
                 }
             }
-            
+
             return boardNode;
         }
 

@@ -7,18 +7,23 @@ import java.util.Random;
 public class IA {
     private final Random random = new Random();
 
-    public void makeMove(Game game, int player) {
+    public Random getRandom() {
+        return random;
+    }
+
+    public Move makeMove(Game game, int player) {
         int[][] board = game.getBoard();
         List<Move> possibleMoves = getAllPossibleMoves(game, board, player);
         if (!possibleMoves.isEmpty()) {
             Move selectedMove = possibleMoves.get(random.nextInt(possibleMoves.size()));
-
-            board[selectedMove.toX][selectedMove.toY] = board[selectedMove.fromX][selectedMove.fromY];
-            board[selectedMove.fromX][selectedMove.fromY] = 0;
+            
+            // Don't update the board here anymore, let the caller handle it
+            return selectedMove;
         }
+        return null;
     }
 
-    private List<Move> getAllPossibleMoves(Game game, int[][] board, int player) {
+    public List<Move> getAllPossibleMoves(Game game, int[][] board, int player) {
         List<Move> allMoves = new ArrayList<>();
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
@@ -34,7 +39,7 @@ public class IA {
         return allMoves;
     }
 
-    private static class Move {
+    public static class Move {
         final int fromX, fromY, toX, toY;
 
         Move(int fromX, int fromY, int toX, int toY) {

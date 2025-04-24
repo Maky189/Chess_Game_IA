@@ -31,29 +31,29 @@ public class Game {
 
         //Set up pawns
         for (int i = 0; i < size; i++) {
-            this.board[1][i] = -1; 
-            this.board[6][i] = 1; 
+            this.board[1][i] = -1;
+            this.board[6][i] = 1;
         }
 
         //Set up rooks
-        board[0][0] = board[0][7] = -2; 
-        board[7][0] = board[7][7] = 2; 
+        board[0][0] = board[0][7] = -2;
+        board[7][0] = board[7][7] = 2;
 
         //Set up knights
         board[0][1] = board[0][6] = -3;
-        board[7][1] = board[7][6] = 3; 
+        board[7][1] = board[7][6] = 3;
 
         //Set up bishops
         board[0][2] = board[0][5] = -4;
-        board[7][2] = board[7][5] = 4; 
+        board[7][2] = board[7][5] = 4;
 
         //Set up queens
-        board[0][3] = -5; 
-        board[7][3] = 5; 
+        board[0][3] = -5;
+        board[7][3] = 5;
 
         //Set up kings
         board[0][4] = -6;
-        board[7][4] = 6; 
+        board[7][4] = 6;
 
     }
     public int[][] getBoard() {
@@ -170,7 +170,7 @@ public class Game {
     private List<int[]> calculateRawMoves(int[][] board, int x, int y) {
         int piece = board[x][y];
         List<int[]> moves = new ArrayList<>();
-        
+
         switch (Math.abs(piece)) {
             case 1: calculatePawnMoves(x, y, piece, moves); break;
             case 2: calculateRookMoves(x, y, piece, moves); break;
@@ -179,7 +179,7 @@ public class Game {
             case 5: calculateQueenMoves(x, y, piece, moves); break;
             case 6: calculateKingMoves(x, y, piece, moves); break;
         }
-        
+
         return moves;
     }
 
@@ -222,8 +222,8 @@ public class Game {
             }
             // If the square is occupied check if opponent
             else if (Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
-                moves.add(new int[]{newX, newY}); 
-                break; 
+                moves.add(new int[]{newX, newY});
+                break;
             } else {
                 break;
             }
@@ -235,18 +235,18 @@ public class Game {
 
     private void calculateRookMoves(int x, int y, int piece, List<int[]> moves) {
         // Rook moves in straight lines horizontal and vertical
-        calculateLinearMoves(x, y, piece, moves, -1, 0); 
-        calculateLinearMoves(x, y, piece, moves, 1, 0);  
-        calculateLinearMoves(x, y, piece, moves, 0, -1); 
-        calculateLinearMoves(x, y, piece, moves, 0, 1);  
+        calculateLinearMoves(x, y, piece, moves, -1, 0);
+        calculateLinearMoves(x, y, piece, moves, 1, 0);
+        calculateLinearMoves(x, y, piece, moves, 0, -1);
+        calculateLinearMoves(x, y, piece, moves, 0, 1);
     }
 
     private void calculateBishopMoves(int x, int y, int piece, List<int[]> moves) {
         // Bishop moves diagonally
-        calculateLinearMoves(x, y, piece, moves, -1, -1); 
+        calculateLinearMoves(x, y, piece, moves, -1, -1);
         calculateLinearMoves(x, y, piece, moves, -1, 1);
-        calculateLinearMoves(x, y, piece, moves, 1, -1); 
-        calculateLinearMoves(x, y, piece, moves, 1, 1);   
+        calculateLinearMoves(x, y, piece, moves, 1, -1);
+        calculateLinearMoves(x, y, piece, moves, 1, 1);
     }
 
     private void calculateQueenMoves(int x, int y, int piece, List<int[]> moves) {

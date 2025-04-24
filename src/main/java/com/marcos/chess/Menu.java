@@ -75,6 +75,8 @@ public class Menu {
         Scene scene = new Scene(root, windowsWidth, windowsHeight);
 
         primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
+        primaryStage.setFullScreen(true);
         primaryStage.show();
     }
 
@@ -119,7 +121,16 @@ public class Menu {
     private void startGame(boolean isMultiplayer) {
         Game game = new Game(8);
         currentRenderer.initialize();
-        Scene gameScene = currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
-        primaryStage.setScene(gameScene);
+
+        if (is3DMode) {
+            primaryStage.hide();
+            currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
+        }
+        else {
+            Scene scene = currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
+            primaryStage.setScene(scene);
+            primaryStage.setMaximized(true);
+            primaryStage.setFullScreen(true);
+        }
     }
 }
