@@ -283,7 +283,7 @@ public class Render_3D implements Renderer {
             int movingPiece = game.getBoard()[fromRow][fromCol];
             float liftHeight = 1.0f;
             float moveDuration = 0.5f;
-            
+
             Node capturedPiece = findPieceNodeAt(toRow, toCol);
             if (capturedPiece != null) {
                 boardNode.detachChild(capturedPiece);

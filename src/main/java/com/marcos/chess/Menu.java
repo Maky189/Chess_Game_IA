@@ -74,6 +74,7 @@ public class Menu {
 
         Scene scene = new Scene(root, windowsWidth, windowsHeight);
 
+        
         primaryStage.setScene(scene);
         primaryStage.setMaximized(true);
         primaryStage.setFullScreen(true);
@@ -128,6 +129,7 @@ public class Menu {
         }
         else {
             Scene scene = currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
+            primaryStage.setFullScreenExitHint("");
             primaryStage.setScene(scene);
             primaryStage.setMaximized(true);
             primaryStage.setFullScreen(true);
