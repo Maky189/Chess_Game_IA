@@ -23,6 +23,10 @@ import javafx.scene.Scene;
 
 import java.util.List;
 
+import com.jme3.scene.control.AbstractControl;
+import com.jme3.renderer.ViewPort;
+import com.jme3.math.FastMath;
+
 public class Render_3D implements Renderer {
     private final int windowsWidth;
     private final int windowsHeight;
@@ -156,23 +160,23 @@ public class Render_3D implements Renderer {
         private final ActionListener actionListener = (name, pressed, tpf) -> {
             if (name.equals("Select") && !pressed) {
                 try {
-                    // Create ray from camera to clicked point
+                    // From camera to the point I click
                     Vector2f click2d = inputManager.getCursorPosition();
                     Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
                     Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
                     Ray ray = new Ray(click3d, dir);
                     
-                    // Check ALL collisions
+                    // Chek for colisions
                     CollisionResults results = new CollisionResults();
                     boardNode.collideWith(ray, results);
 
                     if (results.size() > 0) {
-                        // Get ALL collisions and find the first
+                        // Check for the first colision
                         for (int i = 0; i < results.size(); i++) {
                             Geometry target = results.getCollision(i).getGeometry();
                             if (target == null) continue;
 
-                            // Try to get coordinates from either piece or square
+                            // Try to get the coordenates
                             int[] coords = null;
                             if (target.getName().startsWith("piece_")) {
                                 coords = getPieceCoordinates(target);
@@ -207,9 +211,9 @@ public class Render_3D implements Renderer {
             String[] parts = squareGeometry.getName().split("_");
             if (parts.length >= 3) {
                 try {
-                    int row = Integer.parseInt(parts[1]);
-                    int col = Integer.parseInt(parts[2]);
-                    return new int[]{row, col};
+                    int i = Integer.parseInt(parts[1]);
+                    int j = Integer.parseInt(parts[2]);
+                    return new int[]{i, j};
                 } catch (NumberFormatException e) {
                     return null;
                 }
@@ -225,22 +229,29 @@ public class Render_3D implements Renderer {
                     Node pieceNode = findPieceNodeAt(row, col);
                     if (pieceNode != null) {
                         selectedPieceNode = pieceNode;
-                        selectedPosition = new int[]{row, col};
+                        selectedPosition = new int[]{row, col}; // Store the position
                         clearHighlights();
                         currentHighlights = game.calculatePossibleMoves(row, col);
                         highlightSquares();
                     }
                 }
             } else {
-                // Try to move selected piece
+                // move the piece that is selected
                 boolean validMove = isValidMove(row, col);
                 if (validMove) {
-                    movePiece(row, col);
+                    int[] startPos = selectedPosition.clone();
+                    Node movingPiece = selectedPieceNode;
+
+                    movePiece(startPos[0], startPos[1], row, col, movingPiece);
+
+                    selectedPieceNode = null;
+                    selectedPosition = null;
+                    clearHighlights();
+                } else {
+                    selectedPieceNode = null;
+                    selectedPosition = null;
+                    clearHighlights();
                 }
-                
-                selectedPieceNode = null;
-                selectedPosition = null;
-                clearHighlights();
             }
         }
 
@@ -268,55 +279,103 @@ public class Render_3D implements Renderer {
             return false;
         }
 
-        private void movePiece(int row, int col) {
-            int movingPiece = game.getBoard()[selectedPosition[0]][selectedPosition[1]];
+        private void movePiece(int fromRow, int fromCol, int toRow, int toCol, Node pieceNode) {
+            int movingPiece = game.getBoard()[fromRow][fromCol];
+            float liftHeight = 1.0f;
+            float moveDuration = 0.5f;
 
-            game.getBoard()[row][col] = movingPiece;
-            game.getBoard()[selectedPosition[0]][selectedPosition[1]] = 0;
-
-            selectedPieceNode.setLocalTranslation(
-                (col - 3.5f),
-                0.2f,
-                (row - 3.5f)
-            );
-
-            currentPlayer = -currentPlayer;
-            if (!isMultiplayer && currentPlayer == -1) {
-                handleAIMove();
-            }
+            AnimationControl anim = new AnimationControl(pieceNode,
+                new Vector3f((fromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
+                new Vector3f((toCol - 3.5f), 0.2f, (toRow - 3.5f)),
+                liftHeight,
+                moveDuration,
+                () -> {
+                    game.getBoard()[toRow][toCol] = movingPiece;
+                    game.getBoard()[fromRow][fromCol] = 0;
+                    
+                    currentPlayer = -currentPlayer;
+                    if (!isMultiplayer && currentPlayer == -1) {
+                        handleAIMove();
+                    }
+                });
+            
+            pieceNode.addControl(anim);
         }
 
         private void handleAIMove() {
             IA.Move aiMove = ia.makeMove(game, -1);
             if (aiMove != null) {
                 int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
-
-                Node pieceToMove = null;
-                for (Spatial child : boardNode.getChildren()) {
-                    if (child instanceof Node) {
-                        Vector3f pos = child.getLocalTranslation();
-                        if (Math.abs(pos.x - (aiMove.fromY - 3.5f)) < 0.1f && 
-                            Math.abs(pos.z - (aiMove.fromX - 3.5f)) < 0.1f) {
-                            pieceToMove = (Node) child;
-                            break;
-                        }
-                    }
-                }
-
+                
+                Node pieceToMove = findPieceNodeAt(aiMove.fromX, aiMove.fromY);
                 if (pieceToMove != null) {
-                    game.getBoard()[aiMove.toX][aiMove.toY] = piece;
-                    game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                    float liftHeight = 1.0f;
+                    float moveDuration = 0.5f;
 
-                    pieceToMove.setLocalTranslation(
-                        (aiMove.toY - 3.5f),
-                        0.2f,
-                        (aiMove.toX - 3.5f)
-                    );
-                }
+                    AnimationControl anim = new AnimationControl(pieceToMove,
+                        new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
+                        new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)),
+                        liftHeight,
+                        moveDuration,
+                        () -> {
+                            game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                            game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                            currentPlayer = 1;
+                        });
+            
+            pieceToMove.addControl(anim);
+        }
+    }
+}
 
-                currentPlayer = 1;
+private class AnimationControl extends AbstractControl {
+    private final Vector3f startPos;
+    private final Vector3f endPos;
+    private final float liftHeight;
+    private final float duration;
+    private float time = 0;
+    private final Runnable onComplete;
+    
+    public AnimationControl(Node target, Vector3f start, Vector3f end, float liftHeight, float duration, Runnable onComplete) {
+        this.startPos = start;
+        this.endPos = end;
+        this.liftHeight = liftHeight;
+        this.duration = duration;
+        this.onComplete = onComplete;
+    }
+    
+    @Override
+    protected void controlUpdate(float tpf) {
+        time += tpf;
+        float progress = Math.min(time / duration, 1.0f);
+
+        float smoothProgress = progress * progress * (3 - 2 * progress);
+
+        // Vertical movement
+        float heightProgress = 4 * smoothProgress * (1 - smoothProgress);
+        float currentHeight = 0.2f + (liftHeight * heightProgress);
+        
+        // Horizontal movement
+        float x = FastMath.interpolateLinear(smoothProgress, startPos.x, endPos.x);
+        float z = FastMath.interpolateLinear(smoothProgress, startPos.z, endPos.z);
+        
+        // Position update
+        spatial.setLocalTranslation(x, currentHeight, z);
+        
+        // When the animation is complete
+        if (progress >= 1.0f) {
+            spatial.removeControl(this);
+            if (onComplete != null) {
+                onComplete.run();
             }
         }
+    }
+    
+    @Override
+    protected void controlRender(RenderManager rm, ViewPort vp) {
+        // I am probably gonna use this later
+    }
+}
 
         private void updateBoardVisuals() {
             for (Spatial child : boardNode.getChildren().toArray(new Spatial[0])) {
