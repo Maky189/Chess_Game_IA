@@ -283,6 +283,11 @@ public class Render_3D implements Renderer {
             int movingPiece = game.getBoard()[fromRow][fromCol];
             float liftHeight = 1.0f;
             float moveDuration = 0.5f;
+            
+            Node capturedPiece = findPieceNodeAt(toRow, toCol);
+            if (capturedPiece != null) {
+                boardNode.detachChild(capturedPiece);
+            }
 
             AnimationControl anim = new AnimationControl(pieceNode,
                 new Vector3f((fromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
@@ -309,6 +314,11 @@ public class Render_3D implements Renderer {
                 
                 Node pieceToMove = findPieceNodeAt(aiMove.fromX, aiMove.fromY);
                 if (pieceToMove != null) {
+                    Node capturedPiece = findPieceNodeAt(aiMove.toX, aiMove.toY);
+                    if (capturedPiece != null) {
+                        boardNode.detachChild(capturedPiece);
+                    }
+
                     float liftHeight = 1.0f;
                     float moveDuration = 0.5f;
 
