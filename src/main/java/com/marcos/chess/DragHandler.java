@@ -8,10 +8,7 @@ import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 import java.util.List;
 import javafx.animation.AnimationTimer;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.scene.layout.StackPane;
+import javafx.animation.PauseTransition;
 
 public class DragHandler {
     private final Board board;
@@ -31,6 +28,7 @@ public class DragHandler {
     private ImageView movingPiece = null;
     private double animationProgress = 0;
     private AnimationTimer animator = null;
+    private static final double DELAY = 0.5;
 
     public DragHandler(Board board, Game game, Canvas canvas, Pane pieceLayer, boolean isMultiplayer) {
         this.board = board;
@@ -144,57 +142,58 @@ public class DragHandler {
     }
 
 private void handleAIMove() {
-    IA.Move aiMove = ia.makeMove(game, -1);
-    if (aiMove != null) {
-        isAnimating = true;
-        
-        // Get the piece that's moving
-        int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
 
-        game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
-        redraw();
-        
-        // Create AI piece movement animation
-        ImageView aiPiece = new ImageView(board.obtainImage(piece));
-        aiPiece.setFitWidth(board.getSquareSize());
-        aiPiece.setFitHeight(board.getSquareSize());
-
-        double offsetSquares = 4.6;
-        double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0 
-                            + (offsetSquares * board.getSquareSize());
-        double boardStartY = (board.getWindowsHeight() - (board.getSize() * board.getSquareSize())) / 2.0;
-
-        double startX = boardStartX + (aiMove.fromY * board.getSquareSize());
-        double startY = boardStartY + (aiMove.fromX * board.getSquareSize());
-        double endX = boardStartX + (aiMove.toY * board.getSquareSize());
-        double endY = boardStartY + (aiMove.toX * board.getSquareSize());
-
-        aiPiece.setLayoutX(startX);
-        aiPiece.setLayoutY(startY);
-
-        pieceLayer.getChildren().add(aiPiece);
-
-        TranslateTransition transition = new TranslateTransition(Duration.millis(400), aiPiece);
-        transition.setFromX(0);
-        transition.setFromY(0);
-        transition.setToX(endX - startX);
-        transition.setToY(endY - startY);
-        
-        transition.setOnFinished(e -> {
-            pieceLayer.getChildren().remove(aiPiece);
+    PauseTransition pause = new PauseTransition(Duration.seconds(DELAY));
+    pause.setOnFinished(event -> {
+        IA.Move aiMove = ia.makeMove(game, -1);
+        if (aiMove != null) {
+            isAnimating = true;
             
-            // Update the board state
-            game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+            // Get the piece that's moving
+            int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
             
-            // Redraw the board
+            game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
             redraw();
-            isAnimating = false;
+            
+            // Create AI piece movement animation
+            ImageView aiPiece = new ImageView(board.obtainImage(piece));
+            aiPiece.setFitWidth(board.getSquareSize());
+            aiPiece.setFitHeight(board.getSquareSize());
+            
+            double offsetSquares = 4.6;
+            double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0 
+                                + (offsetSquares * board.getSquareSize());
+            double boardStartY = (board.getWindowsHeight() - (board.getSize() * board.getSquareSize())) / 2.0;
+            
+            double startX = boardStartX + (aiMove.fromY * board.getSquareSize());
+            double startY = boardStartY + (aiMove.fromX * board.getSquareSize());
+            double endX = boardStartX + (aiMove.toY * board.getSquareSize());
+            double endY = boardStartY + (aiMove.toX * board.getSquareSize());
+            
+            aiPiece.setLayoutX(startX);
+            aiPiece.setLayoutY(startY);
+            
+            pieceLayer.getChildren().add(aiPiece);
+            
+            TranslateTransition transition = new TranslateTransition(Duration.millis(400), aiPiece);
+            transition.setFromX(0);
+            transition.setFromY(0);
+            transition.setToX(endX - startX);
+            transition.setToY(endY - startY);
+            
+            transition.setOnFinished(e -> {
+                pieceLayer.getChildren().remove(aiPiece);
+                game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                redraw();
+                isAnimating = false;
+                changePlayer();
+            });
+            
+            transition.play();
+        }
+    });
 
-            changePlayer();
-        });
-        
-        transition.play();
-    }
+    pause.play();
 }
 
     public void MouseReleased(MouseEvent mouseEvent) {
