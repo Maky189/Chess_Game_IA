@@ -24,24 +24,19 @@ public class Renderer_2D implements Renderer {
         
         Board board = new Board(squareSize, size, windowsWidth, windowsHeight);
         canvas = new Canvas(windowsWidth, windowsHeight);
-        
-        // Create and configure piece layer
+
         pieceLayer = new Pane();
         pieceLayer.setMouseTransparent(true);
         pieceLayer.setPrefSize(windowsWidth, windowsHeight);
-        
-        // Initial board draw
+
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
-        
-        // Create handler
+
         handler = new DragHandler(board, game, canvas, pieceLayer, isMultiplayer);
-        
-        // Set up mouse events
+
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);
         canvas.setOnMouseDragged(handler::MouseDragged);
-        
-        // Create layout with proper stacking
+
         StackPane gameLayout = new StackPane();
         gameLayout.getChildren().addAll(canvas, pieceLayer);
         

@@ -80,8 +80,8 @@ public class Render_3D implements Renderer {
         private Material blackMaterial;
 
         public ChessGame(Game game, boolean isMultiplayer) {
-            super(); // Call SimpleApplication constructor
-            ChessGame.game = game; // Initialize the final field in the constructor
+            super();
+            ChessGame.game = game;
             ChessGame.ia = new IA();
             ChessGame.isMultiplayer = isMultiplayer;
         }
@@ -154,88 +154,169 @@ public class Render_3D implements Renderer {
         }
 
         private final ActionListener actionListener = (name, pressed, tpf) -> {
-            //Check for user input on mouse
             if (name.equals("Select") && !pressed) {
                 try {
+                    // Create ray from camera to clicked point
                     Vector2f click2d = inputManager.getCursorPosition();
                     Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
                     Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
-
                     Ray ray = new Ray(click3d, dir);
+                    
+                    // Check ALL collisions
                     CollisionResults results = new CollisionResults();
                     boardNode.collideWith(ray, results);
 
                     if (results.size() > 0) {
-                        Geometry target = results.getClosestCollision().getGeometry();
-                        if (target == null) return;
+                        // Get ALL collisions and find the first
+                        for (int i = 0; i < results.size(); i++) {
+                            Geometry target = results.getCollision(i).getGeometry();
+                            if (target == null) continue;
 
-                        String[] parts = target.getName().split("_");
-                        if (parts.length == 3 && parts[0].equals("square")) {
-                            int row = Integer.parseInt(parts[1]);
-                            int col = Integer.parseInt(parts[2]);
-                            int piece = game.getBoard()[row][col];
+                            // Try to get coordinates from either piece or square
+                            int[] coords = null;
+                            if (target.getName().startsWith("piece_")) {
+                                coords = getPieceCoordinates(target);
+                            } else if (target.getName().startsWith("square_")) {
+                                coords = getSquareCoordinates(target);
+                            }
 
-                            if (selectedPieceNode == null) {
-                                if (piece != 0 && Integer.signum(piece) == currentPlayer) {
-                                    for (Spatial child : boardNode.getChildren()) {
-                                        if (child instanceof Node && child.getLocalTranslation().x == col - 3.5f && child.getLocalTranslation().z == row - 3.5f) {
-                                            selectedPieceNode = (Node) child;
-                                            selectedPosition = new int[]{row, col};
-                                            clearHighlights();
-                                            currentHighlights = game.calculatePossibleMoves(row, col);
-                                            highlightSquares();
-                                            break;
-                                        }
-                                    }
-                                }
-                            } else {
-                                boolean isValidMove = false;
-                                if (currentHighlights != null) {
-                                    for (int[] move : currentHighlights) {
-                                        if (move[0] == row && move[1] == col) {
-                                            isValidMove = true;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (isValidMove) {
-                                    game.getBoard()[row][col] = game.getBoard()[selectedPosition[0]][selectedPosition[1]];
-                                    game.getBoard()[selectedPosition[0]][selectedPosition[1]] = 0;
-
-                                    selectedPieceNode.setLocalTranslation(
-                                            (col - 3.5f),
-                                            0.2f,
-                                            (row - 3.5f)
-                                    );
-
-                                    // Change player
-                                    currentPlayer = -currentPlayer;
-
-                                    if (currentPlayer == -1 && isMultiplayer) {
-                                        setupCameraMultiplayer();
-                                    }
-
-                                    // AI move if not multiplayer
-                                    if (!isMultiplayer && currentPlayer == -1) {
-                                        ia.makeMove(game, -1);
-                                        updateBoardVisuals();
-                                        currentPlayer = 1;
-                                    }
-                                }
-
-                                selectedPieceNode = null;
-                                selectedPosition = null;
-                                clearHighlights();
+                            if (coords != null) {
+                                handleSelection(coords[0], coords[1]);
+                                break;
                             }
                         }
                     }
                 } catch (Exception e) {
-                    System.err.println("Error in mouse selection: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
         };
+
+        private int[] getPieceCoordinates(Geometry pieceGeometry) {
+            Node parent = pieceGeometry.getParent();
+            if (parent != null) {
+                Vector3f pos = parent.getLocalTranslation();
+                int col = Math.round(pos.x + 3.5f);
+                int row = Math.round(pos.z + 3.5f);
+                return new int[]{row, col};
+            }
+            return null;
+        }
+
+        private int[] getSquareCoordinates(Geometry squareGeometry) {
+            String[] parts = squareGeometry.getName().split("_");
+            if (parts.length >= 3) {
+                try {
+                    int row = Integer.parseInt(parts[1]);
+                    int col = Integer.parseInt(parts[2]);
+                    return new int[]{row, col};
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private void handleSelection(int row, int col) {
+            int piece = game.getBoard()[row][col];
+            
+            if (selectedPieceNode == null) {
+                if (piece != 0 && Integer.signum(piece) == currentPlayer) {
+                    Node pieceNode = findPieceNodeAt(row, col);
+                    if (pieceNode != null) {
+                        selectedPieceNode = pieceNode;
+                        selectedPosition = new int[]{row, col};
+                        clearHighlights();
+                        currentHighlights = game.calculatePossibleMoves(row, col);
+                        highlightSquares();
+                    }
+                }
+            } else {
+                // Try to move selected piece
+                boolean validMove = isValidMove(row, col);
+                if (validMove) {
+                    movePiece(row, col);
+                }
+                
+                selectedPieceNode = null;
+                selectedPosition = null;
+                clearHighlights();
+            }
+        }
+
+        private Node findPieceNodeAt(int row, int col) {
+            for (Spatial child : boardNode.getChildren()) {
+                if (child instanceof Node) {
+                    Vector3f pos = child.getLocalTranslation();
+                    if (Math.abs(pos.x - (col - 3.5f)) < 0.1f && 
+                        Math.abs(pos.z - (row - 3.5f)) < 0.1f) {
+                        return (Node) child;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private boolean isValidMove(int row, int col) {
+            if (currentHighlights != null) {
+                for (int[] move : currentHighlights) {
+                    if (move[0] == row && move[1] == col) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void movePiece(int row, int col) {
+            int movingPiece = game.getBoard()[selectedPosition[0]][selectedPosition[1]];
+
+            game.getBoard()[row][col] = movingPiece;
+            game.getBoard()[selectedPosition[0]][selectedPosition[1]] = 0;
+
+            selectedPieceNode.setLocalTranslation(
+                (col - 3.5f),
+                0.2f,
+                (row - 3.5f)
+            );
+
+            currentPlayer = -currentPlayer;
+            if (!isMultiplayer && currentPlayer == -1) {
+                handleAIMove();
+            }
+        }
+
+        private void handleAIMove() {
+            IA.Move aiMove = ia.makeMove(game, -1);
+            if (aiMove != null) {
+                int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
+
+                Node pieceToMove = null;
+                for (Spatial child : boardNode.getChildren()) {
+                    if (child instanceof Node) {
+                        Vector3f pos = child.getLocalTranslation();
+                        if (Math.abs(pos.x - (aiMove.fromY - 3.5f)) < 0.1f && 
+                            Math.abs(pos.z - (aiMove.fromX - 3.5f)) < 0.1f) {
+                            pieceToMove = (Node) child;
+                            break;
+                        }
+                    }
+                }
+
+                if (pieceToMove != null) {
+                    game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                    game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+
+                    pieceToMove.setLocalTranslation(
+                        (aiMove.toY - 3.5f),
+                        0.2f,
+                        (aiMove.toX - 3.5f)
+                    );
+                }
+
+                currentPlayer = 1;
+            }
+        }
 
         private void updateBoardVisuals() {
             for (Spatial child : boardNode.getChildren().toArray(new Spatial[0])) {

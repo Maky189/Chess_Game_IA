@@ -45,12 +45,10 @@ public class DragHandler {
         if (isAnimating) return;
         isAnimating = true;
 
-        // Remove any existing moving piece
         if (movingPiece != null) {
             pieceLayer.getChildren().remove(movingPiece);
         }
 
-        // Create the piece image
         movingPiece = new ImageView(board.obtainImage(piece));
         movingPiece.setFitWidth(board.getSquareSize());
         movingPiece.setFitHeight(board.getSquareSize());
@@ -64,10 +62,8 @@ public class DragHandler {
         double endX = boardStartX + (toY * board.getSquareSize());
         double endY = boardStartY + (toX * board.getSquareSize());
 
-        // Add piece to layer
         pieceLayer.getChildren().add(movingPiece);
-        
-        // Initialize animation
+
         animationProgress = 0;
         
         if (animator != null) {
@@ -83,15 +79,12 @@ public class DragHandler {
                 double elapsed = now - startTime;
                 animationProgress = Math.min(elapsed / duration, 1.0);
 
-                // Calculate current position
                 double currentX = startX + (endX - startX) * animationProgress;
                 double currentY = startY + (endY - startY) * animationProgress;
 
-                // Update piece position
                 movingPiece.setLayoutX(currentX);
                 movingPiece.setLayoutY(currentY);
 
-                // Check if animation is complete
                 if (animationProgress >= 1.0) {
                     this.stop();
                     pieceLayer.getChildren().remove(movingPiece);
@@ -114,7 +107,6 @@ public class DragHandler {
         animator.start();
     }
 
-    // Make sure to clean up in case of interruption
     private void cleanupAnimation() {
         if (animator != null) {
             animator.stop();
@@ -126,7 +118,6 @@ public class DragHandler {
         isAnimating = false;
     }
 
-    // Update MousePressed to clean up any stuck animations
     public void MousePressed(MouseEvent e) {
         cleanupAnimation();
         
@@ -159,36 +150,30 @@ private void handleAIMove() {
         
         // Get the piece that's moving
         int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
-        
-        // Remove the piece from the board immediately
+
         game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
-        redraw(); // Redraw the board to show the piece removed
+        redraw();
         
         // Create AI piece movement animation
         ImageView aiPiece = new ImageView(board.obtainImage(piece));
         aiPiece.setFitWidth(board.getSquareSize());
         aiPiece.setFitHeight(board.getSquareSize());
-        
-        // Calculate board offset with additional squares to the right
+
         double offsetSquares = 4.6;
         double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0 
                             + (offsetSquares * board.getSquareSize());
         double boardStartY = (board.getWindowsHeight() - (board.getSize() * board.getSquareSize())) / 2.0;
-        
-        // Calculate exact positions
+
         double startX = boardStartX + (aiMove.fromY * board.getSquareSize());
         double startY = boardStartY + (aiMove.fromX * board.getSquareSize());
         double endX = boardStartX + (aiMove.toY * board.getSquareSize());
         double endY = boardStartY + (aiMove.toX * board.getSquareSize());
-        
-        // Set initial position
+
         aiPiece.setLayoutX(startX);
         aiPiece.setLayoutY(startY);
-        
-        // Add piece to layer
+
         pieceLayer.getChildren().add(aiPiece);
-        
-        // Create translation animation
+
         TranslateTransition transition = new TranslateTransition(Duration.millis(400), aiPiece);
         transition.setFromX(0);
         transition.setFromY(0);
@@ -196,7 +181,6 @@ private void handleAIMove() {
         transition.setToY(endY - startY);
         
         transition.setOnFinished(e -> {
-            // Remove the animated piece
             pieceLayer.getChildren().remove(aiPiece);
             
             // Update the board state
@@ -205,8 +189,7 @@ private void handleAIMove() {
             // Redraw the board
             redraw();
             isAnimating = false;
-            
-            // Change back to player's turn
+
             changePlayer();
         });
         
@@ -225,14 +208,12 @@ private void handleAIMove() {
                 .anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
 
             if (validMove) {
-                // Update board immediately for player's move
                 game.getBoard()[pos[0]][pos[1]] = selectedPiece;
                 game.getBoard()[fromX][fromY] = 0;
                 redraw();
                 
                 changePlayer();
-                
-                // Handle AI move with animation
+
                 if (!isMultiplayer) {
                     handleAIMove();
                 }
@@ -269,7 +250,6 @@ private void handleAIMove() {
         }
 
         if (selectedPiece != 0) {
-            // Center the piece on the cursor
             double x = toX - board.getSquareSize() / 2.0;
             double y = toY - board.getSquareSize() / 2.0;
             canvas.getGraphicsContext2D().drawImage(
@@ -301,7 +281,6 @@ private void handleAIMove() {
     }
 
     private int[] getCoord(double x, double y) {
-        // Fix coordinate calculation
         double boardStartX = (board.getWindowsWidth() - board.getSize() * board.getSquareSize()) / 2.0;
         double boardStartY = (board.getWindowsHeight() - board.getSize() * board.getSquareSize()) / 2.0;
 
@@ -314,7 +293,6 @@ private void handleAIMove() {
         return null;
     }
 
-    // Make sure to clean up animations when switching scenes or closing
     public void cleanup() {
         cleanupAnimation();
     }

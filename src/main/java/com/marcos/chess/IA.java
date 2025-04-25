@@ -17,7 +17,7 @@ public class IA {
         if (!possibleMoves.isEmpty()) {
             Move selectedMove = possibleMoves.get(random.nextInt(possibleMoves.size()));
             
-            // Don't update the board here anymore, let the caller handle it
+            // Don't update the board here anymore Marcos
             return selectedMove;
         }
         return null;
