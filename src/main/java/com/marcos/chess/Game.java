@@ -73,55 +73,94 @@ public class Game {
 
     public List<int[]> calculatePossibleMoves(int x, int y) {
         int piece = board[x][y];
-        if (piece == 0) {
-            return new ArrayList<>();
+        if (piece == 0) return new ArrayList<>();
+        List<int[]> moves = calculateRawMoves(board, x, y);
+        if (moves.isEmpty()) return moves;
+
+        //check for moeves that could do a check
+        moves = moves.stream()
+            .filter(move -> !wouldResultInCheck(x, y, move[0], move[1]))
+            .toList();
+
+        // check pinned piece
+        if (Math.abs(piece) != 6) {
+            moves = filterPinnedMoves(x, y, moves);
         }
 
-        List<int[]> possibleMoves = new ArrayList<>();
+        return moves;
+    }
 
-        // Calculate potencial moves
-        switch (Math.abs(piece)) {
-            case 1: calculatePawnMoves(x, y, piece, possibleMoves); break;
-            case 2: calculateRookMoves(x, y, piece, possibleMoves); break;
-            case 3: calculateKnightMoves(x, y, piece, possibleMoves); break;
-            case 4: calculateBishopMoves(x, y, piece, possibleMoves); break;
-            case 5: calculateQueenMoves(x, y, piece, possibleMoves); break;
-            case 6: calculateKingMoves(x, y, piece, possibleMoves); break;
-        }
-
-        // See moves that would leave king on check
-        List<int[]> validMoves = new ArrayList<>();
+    private List<int[]> filterPinnedMoves(int pieceX, int pieceY, List<int[]> moves) {
+        int piece = board[pieceX][pieceY];
         int kingValue = (piece > 0) ? 6 : -6;
-        int opponentSign = (piece > 0) ? -1 : 1;
-
-        for (int[] move : possibleMoves) {
-            //Test the move
-            //This is not optimal but is the only possible fix I've tought
-            //Remember to Fix later
-            int[][] tempBoard = new int[board.length][board.length];
-            for (int i = 0; i < board.length; i++) {
-                System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+        
+        // Find king
+        int[] kingPos = null;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] == kingValue) {
+                    kingPos = new int[]{i, j};
+                    break;
+                }
             }
+            if (kingPos != null) break;
+        }
+        if (kingPos == null) return moves;
 
-            // Make the move
-            tempBoard[move[0]][move[1]] = tempBoard[x][y];
-            tempBoard[x][y] = 0;
+        int kingX = kingPos[0];
+        int kingY = kingPos[1];
 
-            // Find king's position
-            int[] kingPos;
-            if (Math.abs(piece) == 6) {
-                kingPos = new int[]{move[0], move[1]}; // King is moving
-            } else {
-                kingPos = findKingPosition(tempBoard, kingValue);
-            }
+        int[][] directions = {{0,1}, {1,0}, {0,-1}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1}};
+        
+        for (int[] dir : directions) {
+            int dx = dir[0];
+            int dy = dir[1];
 
-            // Check if is valid or not
-            if (kingPos != null && !isKingThreatened(tempBoard, kingPos[0], kingPos[1], opponentSign)) {
-                validMoves.add(move);
+            if (!isInLine(kingX, kingY, pieceX, pieceY, dx, dy)) continue;
+            
+            // Check for pinned piece
+            boolean foundPiece = false;
+            int x = kingX + dx;
+            int y = kingY + dy;
+            
+            while (x >= 0 && x < board.length && y >= 0 && y < board.length) {
+                if (x == pieceX && y == pieceY) {
+                    foundPiece = true;
+                } else if (board[x][y] != 0) {
+                    if (foundPiece) {
+                        int enemyPiece = board[x][y];
+                        if (Integer.signum(enemyPiece) != Integer.signum(piece)) {
+                            boolean canPin = switch (Math.abs(enemyPiece)) {
+                                case 2 -> dx == 0 || dy == 0;
+                                case 4 -> Math.abs(dx) == Math.abs(dy);
+                                case 5 -> true;
+                                default -> false;
+                            };
+                            
+                            if (canPin) {
+                                return moves.stream()
+                                    .filter(move -> isInLine(kingX, kingY, move[0], move[1], dx, dy))
+                                    .toList();
+                            }
+                        }
+                        break;
+                    }
+                    break;
+                }
+                x += dx;
+                y += dy;
             }
         }
+        
+        return moves;
+    }
 
-        return validMoves;
+    private boolean isInLine(int x1, int y1, int x2, int y2, int dx, int dy) {
+        if (dx == 0) return y1 == y2;
+        if (dy == 0) return x1 == x2;
+        return Math.abs(x1 - x2) == Math.abs(y1 - y2) &&
+           Integer.signum(x2 - x1) == Integer.signum(dx) &&
+           Integer.signum(y2 - y1) == Integer.signum(dy);
     }
 
     private int[] findKingPosition(int[][] board, int kingValue) {
@@ -165,6 +204,41 @@ public class Game {
             }
         }
         return false;
+    }
+
+    private boolean wouldResultInCheck(int pieceX, int pieceY, int newX, int newY) {
+        int piece = board[pieceX][pieceY];
+        int kingValue = (piece > 0) ? 6 : -6;
+
+        //Test the move
+        //This is not optimal but is the only possible fix I've tought
+        //Remember to Fix later
+        int[][] tempBoard = new int[board.length][board.length];
+        for (int i = 0; i < board.length; i++) {
+            System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+        }
+
+        // Make the move
+        tempBoard[newX][newY] = tempBoard[pieceX][pieceY];
+        tempBoard[pieceX][pieceY] = 0;
+
+        // Find position of king
+        int[] kingPos;
+        if (Math.abs(piece) == 6) {
+            kingPos = new int[]{newX, newY};
+        } else {
+            kingPos = findKingPosition(tempBoard, kingValue);
+        }
+
+        // validate
+        int opponentSign = (piece > 0) ? -1 : 1;
+        return kingPos != null && isKingThreatened(tempBoard, kingPos[0], kingPos[1], opponentSign);
+
+
+        //Remember if I get issues later, probably is due to this section that is a mess
+        // I have to fix it later
+        //Remember
+
     }
 
     private List<int[]> calculateRawMoves(int[][] board, int x, int y) {
