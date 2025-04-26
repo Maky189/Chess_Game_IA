@@ -181,23 +181,31 @@ public class Game {
                     List<int[]> moves = calculateRawMoves(board, i, j);
                     for (int[] move : moves) {
                         if (move[0] == kingX && move[1] == kingY) {
-                            // Find direction of attack
-                            int dx = Integer.compare(kingX - i, 0);
-                            int dy = Integer.compare(kingY - j, 0);
-                            // For knights and pawns
-                            if (Math.abs(board[i][j]) == 3 || Math.abs(board[i][j]) == 1) {
+                            int piece = Math.abs(board[i][j]);
+                            // Knights and pawns don't need
+                            if (piece == 3 || piece == 1) {
                                 return true;
                             }
+
+                            // For other pieces check the path
+                            int dx = Integer.compare(kingX - i, 0);
+                            int dy = Integer.compare(kingY - j, 0);
                             int x = i + dx;
                             int y = j + dy;
+                            boolean pathClear = true;
+
                             while (x != kingX || y != kingY) {
                                 if (board[x][y] != 0) {
-                                    return false;
+                                    pathClear = false;
+                                    break;
                                 }
                                 x += dx;
                                 y += dy;
                             }
-                            return true;
+
+                            if (pathClear) {
+                                return true;
+                            }
                         }
                     }
                 }
@@ -206,40 +214,123 @@ public class Game {
         return false;
     }
 
-    private boolean wouldResultInCheck(int pieceX, int pieceY, int newX, int newY) {
-        int piece = board[pieceX][pieceY];
-        int kingValue = (piece > 0) ? 6 : -6;
+private boolean wouldResultInCheck(int pieceX, int pieceY, int newX, int newY) {
+    int piece = board[pieceX][pieceY];
+    int kingValue = (piece > 0) ? 6 : -6;
 
-        //Test the move
-        //This is not optimal but is the only possible fix I've tought
-        //Remember to Fix later
-        int[][] tempBoard = new int[board.length][board.length];
-        for (int i = 0; i < board.length; i++) {
-            System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
-        }
-
-        // Make the move
-        tempBoard[newX][newY] = tempBoard[pieceX][pieceY];
-        tempBoard[pieceX][pieceY] = 0;
-
-        // Find position of king
-        int[] kingPos;
-        if (Math.abs(piece) == 6) {
-            kingPos = new int[]{newX, newY};
-        } else {
-            kingPos = findKingPosition(tempBoard, kingValue);
-        }
-
-        // validate
-        int opponentSign = (piece > 0) ? -1 : 1;
-        return kingPos != null && isKingThreatened(tempBoard, kingPos[0], kingPos[1], opponentSign);
-
-
-        //Remember if I get issues later, probably is due to this section that is a mess
-        // I have to fix it later
-        //Remember
-
+    //Test the move
+    //This is not optimal but is the only possible fix I've tought
+    //Remember to Fix later
+    int[][] tempBoard = new int[board.length][board.length];
+    for (int i = 0; i < board.length; i++) {
+        System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
     }
+
+    // Test the move
+    tempBoard[newX][newY] = tempBoard[pieceX][pieceY];
+    tempBoard[pieceX][pieceY] = 0;
+
+    int kingX, kingY;
+    if (Math.abs(piece) == 6) {
+        kingX = newX;
+        kingY = newY;
+    } else {
+        int[] kingPos = findKingPosition(tempBoard, kingValue);
+        if (kingPos == null) return true;
+        kingX = kingPos[0];
+        kingY = kingPos[1];
+    }
+
+    int opponentSign = (piece > 0) ? -1 : 1;
+
+
+    //Check all diretion at a time
+    if (isDiagonallyThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
+    if (isThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
+    if (isKnightThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
+    if (isPawnThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
+
+    return false;
+
+    //Remember if I get issues later, probably is due to this section that is a mess
+    // I have to fix it later
+    //Remember
+}
+
+private boolean isDiagonallyThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
+    int[][] directions = {{1,1}, {1,-1}, {-1,1}, {-1,-1}};
+    for (int[] dir : directions) {
+        int x = kingX + dir[0];
+        int y = kingY + dir[1];
+        while (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
+            if (tempBoard[x][y] != 0) {
+                if (Integer.signum(tempBoard[x][y]) == opponentSign) {
+                    int piece = Math.abs(tempBoard[x][y]);
+                    if (piece == 4 || piece == 5) return true;
+                }
+                break;
+            }
+            x += dir[0];
+            y += dir[1];
+        }
+    }
+    return false;
+}
+
+//This cheks in a perpendicular way, this is not optimal, I have to find another solution for this too
+private boolean isThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
+    int[][] directions = {{0,1}, {0,-1}, {1,0}, {-1,0}};
+    for (int[] direction : directions) {
+        int x = kingX + direction[0];
+        int y = kingY + direction[1];
+        while (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
+            if (tempBoard[x][y] != 0) {
+                if (Integer.signum(tempBoard[x][y]) == opponentSign) {
+                    int piece = Math.abs(tempBoard[x][y]);
+                    if (piece == 2 || piece == 5) return true;
+                }
+                break;
+            }
+            x += direction[0];
+            y += direction[1];
+        }
+    }
+    return false;
+}
+
+private boolean isKnightThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
+    int[][] knightMoves = {{-2,-1}, {-2,1}, {-1,-2}, {-1,2}, {1,-2}, {1,2}, {2,-1}, {2,1}};
+    for (int[] move : knightMoves) {
+        int x = kingX + move[0];
+        int y = kingY + move[1];
+        if (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
+            if (tempBoard[x][y] != 0 && 
+                Integer.signum(tempBoard[x][y]) == opponentSign && 
+                Math.abs(tempBoard[x][y]) == 3) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+private boolean isPawnThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
+    int pawnDirection = opponentSign > 0 ? 1 : -1;
+    int[] pawnColumns = {-1, 1};
+    
+    for (int i : pawnColumns) {
+        int x = kingX - pawnDirection;
+        int y = kingY + i;
+        if (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
+            if (tempBoard[x][y] != 0 && 
+                Integer.signum(tempBoard[x][y]) == opponentSign && 
+                Math.abs(tempBoard[x][y]) == 1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
     private List<int[]> calculateRawMoves(int[][] board, int x, int y) {
         int piece = board[x][y];
