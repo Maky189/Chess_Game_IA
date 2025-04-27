@@ -165,7 +165,7 @@ public class Render_3D implements Renderer {
                     Vector3f click3d = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
                     Vector3f dir = cam.getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
                     Ray ray = new Ray(click3d, dir);
-                    
+
                     // Chek for colisions
                     CollisionResults results = new CollisionResults();
                     boardNode.collideWith(ray, results);
@@ -223,7 +223,7 @@ public class Render_3D implements Renderer {
 
         private void handleSelection(int row, int col) {
             int piece = game.getBoard()[row][col];
-            
+
             if (selectedPieceNode == null) {
                 if (piece != 0 && Integer.signum(piece) == currentPlayer) {
                     Node pieceNode = findPieceNodeAt(row, col);
@@ -259,8 +259,8 @@ public class Render_3D implements Renderer {
             for (Spatial child : boardNode.getChildren()) {
                 if (child instanceof Node) {
                     Vector3f pos = child.getLocalTranslation();
-                    if (Math.abs(pos.x - (col - 3.5f)) < 0.1f && 
-                        Math.abs(pos.z - (row - 3.5f)) < 0.1f) {
+                    if (Math.abs(pos.x - (col - 3.5f)) < 0.1f &&
+                            Math.abs(pos.z - (row - 3.5f)) < 0.1f) {
                         return (Node) child;
                     }
                 }
@@ -289,29 +289,60 @@ public class Render_3D implements Renderer {
                 boardNode.detachChild(capturedPiece);
             }
 
-            AnimationControl anim = new AnimationControl(pieceNode,
-                new Vector3f((fromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
-                new Vector3f((toCol - 3.5f), 0.2f, (toRow - 3.5f)),
-                liftHeight,
-                moveDuration,
-                () -> {
-                    game.getBoard()[toRow][toCol] = movingPiece;
-                    game.getBoard()[fromRow][fromCol] = 0;
-                    
-                    currentPlayer = -currentPlayer;
-                    if (!isMultiplayer && currentPlayer == -1) {
-                        handleAIMove();
-                    }
-                });
+            // Check for castling move
+            boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromCol - toCol) == 2;
             
-            pieceNode.addControl(anim);
+            if (isCastling) {
+                // see the ype of castling
+                boolean isKingside = toCol > fromCol;
+                int rookFromCol = isKingside ? 7 : 0;
+                int rookToCol = isKingside ? 5 : 3;
+                
+                // Find rook
+                Node rookNode = findPieceNodeAt(fromRow, rookFromCol);
+                if (rookNode != null) {
+                    AnimationControl rookAnim = new AnimationControl(rookNode,
+                            new Vector3f((rookFromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
+                            new Vector3f((rookToCol - 3.5f), 0.2f, (fromRow - 3.5f)),
+                            liftHeight,
+                            moveDuration,
+                            null);
+                    rookNode.addControl(rookAnim);
+                }
+            }
+
+            AnimationControl kingAnim = new AnimationControl(pieceNode,
+                    new Vector3f((fromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
+                    new Vector3f((toCol - 3.5f), 0.2f, (toRow - 3.5f)),
+                    liftHeight,
+                    moveDuration,
+                    () -> {
+                        // Update the state of bard
+                        game.getBoard()[toRow][toCol] = movingPiece;
+                        game.getBoard()[fromRow][fromCol] = 0;
+
+                        if (isCastling) {
+                            if (toCol > fromCol) {
+                                game.performKingsideCastle(fromRow);
+                            } else {
+                                game.performQueensideCastle(fromRow);
+                            }
+                        }
+
+                        currentPlayer = -currentPlayer;
+                        if (!isMultiplayer && currentPlayer == -1) {
+                            handleAIMove();
+                        }
+                    });
+
+            pieceNode.addControl(kingAnim);
         }
 
         private void handleAIMove() {
             IA.Move aiMove = ia.makeMove(game, -1);
             if (aiMove != null) {
                 int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
-                
+
                 Node pieceToMove = findPieceNodeAt(aiMove.fromX, aiMove.fromY);
                 if (pieceToMove != null) {
                     Node capturedPiece = findPieceNodeAt(aiMove.toX, aiMove.toY);
@@ -323,69 +354,69 @@ public class Render_3D implements Renderer {
                     float moveDuration = 0.5f;
 
                     AnimationControl anim = new AnimationControl(pieceToMove,
-                        new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
-                        new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)),
-                        liftHeight,
-                        moveDuration,
-                        () -> {
-                            game.getBoard()[aiMove.toX][aiMove.toY] = piece;
-                            game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
-                            currentPlayer = 1;
-                        });
-            
-            pieceToMove.addControl(anim);
-        }
-    }
-}
+                            new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
+                            new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)),
+                            liftHeight,
+                            moveDuration,
+                            () -> {
+                                game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                                game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                                currentPlayer = 1;
+                            });
 
-private class AnimationControl extends AbstractControl {
-    private final Vector3f startPos;
-    private final Vector3f endPos;
-    private final float liftHeight;
-    private final float duration;
-    private float time = 0;
-    private final Runnable onComplete;
-    
-    public AnimationControl(Node target, Vector3f start, Vector3f end, float liftHeight, float duration, Runnable onComplete) {
-        this.startPos = start;
-        this.endPos = end;
-        this.liftHeight = liftHeight;
-        this.duration = duration;
-        this.onComplete = onComplete;
-    }
-    
-    @Override
-    protected void controlUpdate(float tpf) {
-        time += tpf;
-        float progress = Math.min(time / duration, 1.0f);
-
-        float smoothProgress = progress * progress * (3 - 2 * progress);
-
-        // Vertical movement
-        float heightProgress = 4 * smoothProgress * (1 - smoothProgress);
-        float currentHeight = 0.2f + (liftHeight * heightProgress);
-        
-        // Horizontal movement
-        float x = FastMath.interpolateLinear(smoothProgress, startPos.x, endPos.x);
-        float z = FastMath.interpolateLinear(smoothProgress, startPos.z, endPos.z);
-        
-        // Position update
-        spatial.setLocalTranslation(x, currentHeight, z);
-        
-        // When the animation is complete
-        if (progress >= 1.0f) {
-            spatial.removeControl(this);
-            if (onComplete != null) {
-                onComplete.run();
+                    pieceToMove.addControl(anim);
+                }
             }
         }
-    }
-    
-    @Override
-    protected void controlRender(RenderManager rm, ViewPort vp) {
-        // I am probably gonna use this later
-    }
-}
+
+        private class AnimationControl extends AbstractControl {
+            private final Vector3f startPos;
+            private final Vector3f endPos;
+            private final float liftHeight;
+            private final float duration;
+            private float time = 0;
+            private final Runnable onComplete;
+
+            public AnimationControl(Node target, Vector3f start, Vector3f end, float liftHeight, float duration, Runnable onComplete) {
+                this.startPos = start;
+                this.endPos = end;
+                this.liftHeight = liftHeight;
+                this.duration = duration;
+                this.onComplete = onComplete;
+            }
+
+            @Override
+            protected void controlUpdate(float tpf) {
+                time += tpf;
+                float progress = Math.min(time / duration, 1.0f);
+
+                float smoothProgress = progress * progress * (3 - 2 * progress);
+
+                // Vertical movement
+                float heightProgress = 4 * smoothProgress * (1 - smoothProgress);
+                float currentHeight = 0.2f + (liftHeight * heightProgress);
+
+                // Horizontal movement
+                float x = FastMath.interpolateLinear(smoothProgress, startPos.x, endPos.x);
+                float z = FastMath.interpolateLinear(smoothProgress, startPos.z, endPos.z);
+
+                // Position update
+                spatial.setLocalTranslation(x, currentHeight, z);
+
+                // When the animation is complete
+                if (progress >= 1.0f) {
+                    spatial.removeControl(this);
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                }
+            }
+
+            @Override
+            protected void controlRender(RenderManager rm, ViewPort vp) {
+                // I am probably gonna use this later
+            }
+        }
 
         private void updateBoardVisuals() {
             for (Spatial child : boardNode.getChildren().toArray(new Spatial[0])) {
