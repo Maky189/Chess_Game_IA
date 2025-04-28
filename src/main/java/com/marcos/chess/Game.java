@@ -29,6 +29,8 @@ public class Game {
 private boolean hasKingMoved = false;
 private boolean hasKingsideRookMoved = false;
 private boolean hasQueensideRookMoved = false;
+private boolean whiteHasCastled = false;
+private boolean blackHasCastled = false;
 
     public Game(int size) {
         this.board = new int[size][size];
@@ -452,6 +454,9 @@ private void calculateKingMoves(int x, int y, int piece, List<int[]> moves) {
 }
 
 private boolean canCastleKingside(int row, int piece) {
+    if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
+        return false;
+    }
 
     if (board[row][5] != 0 || board[row][6] != 0) {
         return false;
@@ -468,6 +473,10 @@ private boolean canCastleKingside(int row, int piece) {
 }
 
 private boolean canCastleQueenside(int row, int piece) {
+    if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
+        return false;
+    }
+
     if (board[row][1] != 0 || board[row][2] != 0 || board[row][3] != 0) {
         return false;
     }
@@ -485,12 +494,21 @@ private boolean canCastleQueenside(int row, int piece) {
 public void performKingsideCastle(int kingRow) {
     board[kingRow][5] = board[kingRow][7];
     board[kingRow][7] = 0;
+    if (kingRow == 7) {
+        whiteHasCastled = true;
+    } else {
+        blackHasCastled = true;
+    }
 }
 
 public void performQueensideCastle(int kingRow) {
-    // Move rook
     board[kingRow][3] = board[kingRow][0];
     board[kingRow][0] = 0;
+    if (kingRow == 7) {
+        whiteHasCastled = true;
+    } else {
+        blackHasCastled = true;
+    }
 }
 
 public boolean isCastlingMove(int fromX, int fromY, int toX, int toY) {
