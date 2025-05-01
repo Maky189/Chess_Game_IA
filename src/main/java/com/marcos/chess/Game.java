@@ -26,11 +26,19 @@ public class Game {
 
     private int[][] board;
 
-private boolean hasKingMoved = false;
-private boolean hasKingsideRookMoved = false;
-private boolean hasQueensideRookMoved = false;
-private boolean whiteHasCastled = false;
-private boolean blackHasCastled = false;
+    private boolean hasKingMoved = false;
+    private boolean hasKingsideRookMoved = false;
+    private boolean hasQueensideRookMoved = false;
+    private boolean whiteHasCastled = false;
+    private boolean blackHasCastled = false;
+
+    private int lastMoveFromX = -1;
+    private int lastMoveFromY = -1;
+    private int lastMoveToX = -1;
+    private int lastMoveToY = -1;
+    private int lastMovePiece = 0;
+    private int enPassantTargetX = -1;
+    private int enPassantTargetY = -1;
 
     public Game(int size) {
         this.board = new int[size][size];
@@ -357,30 +365,80 @@ private boolean blackHasCastled = false;
     private void calculatePawnMoves(int x, int y, int piece, List<int[]> moves) {
         int direction = (piece > 0) ? -1 : 1;
 
-        // Move one square d
+        // Normal pawn moves (one square forward)
         int newX = x + direction;
         if (isInBounds(newX, y) && board[newX][y] == 0) {
             moves.add(new int[]{newX, y});
-        }
 
-        // Move two squares in the begining
-        if ((piece > 0 && x == 6) || (piece < 0 && x == 1)) {
-            int twoSquares = x + 2 * direction;
-            if (isInBounds(twoSquares, y) && board[twoSquares][y] == 0 && board[newX][y] == 0) {
-                moves.add(new int[]{twoSquares, y});
+            // Initial two-square move
+            if ((piece > 0 && x == 6) || (piece < 0 && x == 1)) {
+                int twoSquares = x + 2 * direction;
+                if (isInBounds(twoSquares, y) && board[twoSquares][y] == 0) {
+                    moves.add(new int[]{twoSquares, y});
+                }
             }
         }
 
-        // Capture piece
-        int[] captures = {-1, 1};
-        for (int capture : captures) {
-            int newY = y + capture;
-            if (isInBounds(newX, newY) && board[newX][newY] != 0 &&
-                    Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
-                moves.add(new int[]{newX, newY});
+        // Normal captures
+        for (int offset : new int[]{-1, 1}) {
+            int newY = y + offset;
+            if (isInBounds(newX, newY)) {
+                // Regular capture
+                if (board[newX][newY] != 0 && Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
+                    moves.add(new int[]{newX, newY});
+                }
+                // En passant capture
+                else if (newX == enPassantTargetX && newY == enPassantTargetY
+                        && Math.abs(lastMovePiece) == 1
+                        && Integer.signum(lastMovePiece) != Integer.signum(piece)) {
+                    moves.add(new int[]{newX, newY});
+                }
             }
         }
     }
+
+    public void updateLastMove(int fromX, int fromY, int toX, int toY) {
+        lastMoveFromX = fromX;
+        lastMoveFromY = fromY;
+        lastMoveToX = toX;
+        lastMoveToY = toY;
+        lastMovePiece = board[toX][toY];
+
+        if (Math.abs(lastMovePiece) == 1 && Math.abs(fromX - toX) == 2) {
+            enPassantTargetX = (fromX + toX) / 2;
+            enPassantTargetY = toY;
+        } else {
+            enPassantTargetX = -1;
+            enPassantTargetY = -1;
+        }
+    }
+
+    public boolean isEnPassantCapture(int fromX, int fromY, int toX, int toY) {
+        int piece = board[fromX][fromY];
+        if (Math.abs(piece) != 1) return false;
+        if (Math.abs(fromY - toY) != 1) return false;
+
+        return toX == enPassantTargetX && toY == enPassantTargetY;
+    }
+
+    public void performEnPassantCapture(int toX, int toY) {
+        board[enPassantTargetX][enPassantTargetY] = 0;
+    }
+
+    public int getLastMoveToX() {
+        return lastMoveToX;
+    }
+
+    public int getLastMoveToY() {
+        return lastMoveToY;
+    }
+
+    public int getLastMovePiece() {
+        return lastMovePiece;
+    }
+
+    public int getEnPassantTargetX() { return enPassantTargetX; }
+    public int getEnPassantTargetY() { return enPassantTargetY; }
 
     private void calculateLinearMoves(int x, int y, int piece, List<int[]> moves, int DirX, int DirY) {
         int newX = x + DirX;
@@ -426,97 +484,97 @@ private boolean blackHasCastled = false;
         calculateBishopMoves(x, y, piece, moves);
     }
 
-private void calculateKingMoves(int x, int y, int piece, List<int[]> moves) {
-    // Regular king moves
-    int[][] possibilities = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+    private void calculateKingMoves(int x, int y, int piece, List<int[]> moves) {
+        // Regular king moves
+        int[][] possibilities = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 
-    for (int[] possibility : possibilities) {
-        int newX = x + possibility[0];
-        int newY = y + possibility[1];
+        for (int[] possibility : possibilities) {
+            int newX = x + possibility[0];
+            int newY = y + possibility[1];
 
-        // Validate if is in bounds and not opponent in square
-        if (isInBounds(newX, newY) &&
-                (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
-            moves.add(new int[]{newX, newY});
+            // Validate if is in bounds and not opponent in square
+            if (isInBounds(newX, newY) &&
+                    (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
+                moves.add(new int[]{newX, newY});
+            }
+        }
+
+        // Castling logic
+        int row = (piece > 0) ? 7 : 0;
+        if (x == row && y == 4) {
+            if (canCastleKingside(row, piece)) {
+                moves.add(new int[]{row, 6});
+            }
+            if (canCastleQueenside(row, piece)) {
+                moves.add(new int[]{row, 2});
+            }
         }
     }
 
-    // Castling logic
-    int row = (piece > 0) ? 7 : 0;
-    if (x == row && y == 4) {
-        if (canCastleKingside(row, piece)) {
-            moves.add(new int[]{row, 6});
+    private boolean canCastleKingside(int row, int piece) {
+        if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
+            return false;
         }
-        if (canCastleQueenside(row, piece)) {
-            moves.add(new int[]{row, 2});
+
+        if (board[row][5] != 0 || board[row][6] != 0) {
+            return false;
+        }
+
+        if (board[row][7] != piece / Math.abs(piece) * 2) {
+            return false;
+        }
+
+        int opponentSign = piece > 0 ? -1 : 1;
+        return !isKingThreatened(board, row, 4, opponentSign) &&
+                !isKingThreatened(board, row, 5, opponentSign) &&
+                !isKingThreatened(board, row, 6, opponentSign);
+    }
+
+    private boolean canCastleQueenside(int row, int piece) {
+        if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
+            return false;
+        }
+
+        if (board[row][1] != 0 || board[row][2] != 0 || board[row][3] != 0) {
+            return false;
+        }
+
+        if (board[row][0] != piece / Math.abs(piece) * 2) {
+            return false;
+        }
+
+        int opponentSign = piece > 0 ? -1 : 1;
+        return !isKingThreatened(board, row, 4, opponentSign) &&
+                !isKingThreatened(board, row, 3, opponentSign) &&
+                !isKingThreatened(board, row, 2, opponentSign);
+    }
+
+    public void performKingsideCastle(int kingRow) {
+        board[kingRow][5] = board[kingRow][7];
+        board[kingRow][7] = 0;
+        if (kingRow == 7) {
+            whiteHasCastled = true;
+        } else {
+            blackHasCastled = true;
         }
     }
-}
 
-private boolean canCastleKingside(int row, int piece) {
-    if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
-        return false;
+    public void performQueensideCastle(int kingRow) {
+        board[kingRow][3] = board[kingRow][0];
+        board[kingRow][0] = 0;
+        if (kingRow == 7) {
+            whiteHasCastled = true;
+        } else {
+            blackHasCastled = true;
+        }
     }
 
-    if (board[row][5] != 0 || board[row][6] != 0) {
-        return false;
+    public boolean isCastlingMove(int fromX, int fromY, int toX, int toY) {
+        int piece = Math.abs(board[fromX][fromY]);
+        if (piece != 6) return false;
+
+        return fromX == toX && Math.abs(fromY - toY) == 2;
     }
-
-    if (board[row][7] != piece / Math.abs(piece) * 2) {
-        return false;
-    }
-
-    int opponentSign = piece > 0 ? -1 : 1;
-    return !isKingThreatened(board, row, 4, opponentSign) && 
-           !isKingThreatened(board, row, 5, opponentSign) && 
-           !isKingThreatened(board, row, 6, opponentSign);
-}
-
-private boolean canCastleQueenside(int row, int piece) {
-    if ((piece > 0 && whiteHasCastled) || (piece < 0 && blackHasCastled)) {
-        return false;
-    }
-
-    if (board[row][1] != 0 || board[row][2] != 0 || board[row][3] != 0) {
-        return false;
-    }
-
-    if (board[row][0] != piece / Math.abs(piece) * 2) {
-        return false;
-    }
-
-    int opponentSign = piece > 0 ? -1 : 1;
-    return !isKingThreatened(board, row, 4, opponentSign) && 
-           !isKingThreatened(board, row, 3, opponentSign) && 
-           !isKingThreatened(board, row, 2, opponentSign);
-}
-
-public void performKingsideCastle(int kingRow) {
-    board[kingRow][5] = board[kingRow][7];
-    board[kingRow][7] = 0;
-    if (kingRow == 7) {
-        whiteHasCastled = true;
-    } else {
-        blackHasCastled = true;
-    }
-}
-
-public void performQueensideCastle(int kingRow) {
-    board[kingRow][3] = board[kingRow][0];
-    board[kingRow][0] = 0;
-    if (kingRow == 7) {
-        whiteHasCastled = true;
-    } else {
-        blackHasCastled = true;
-    }
-}
-
-public boolean isCastlingMove(int fromX, int fromY, int toX, int toY) {
-    int piece = Math.abs(board[fromX][fromY]);
-    if (piece != 6) return false;
-
-    return fromX == toX && Math.abs(fromY - toY) == 2;
-}
 
     private void calculateKnightMoves(int x, int y, int piece, List<int[]> moves) {
         int[][] possibilities = {{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}};

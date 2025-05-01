@@ -31,7 +31,7 @@ public class Render_3D implements Renderer {
     private final int windowsWidth;
     private final int windowsHeight;
     private ChessGame chessApp;
-    private Game currentGame;
+    private Game game = GameFactory.getGameInstance(8);
 
     public Render_3D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
@@ -46,8 +46,7 @@ public class Render_3D implements Renderer {
     }
 
     @Override
-    public Scene createGameScene(Game game, int windowsWidth, int windowsHeight, boolean isMultiplayer) {
-        this.currentGame = game;
+    public Scene createGameScene(int windowsWidth, int windowsHeight, boolean isMultiplayer) {
         chessApp = new ChessGame(game, isMultiplayer);
         AppSettings settings = new AppSettings(true);
 
@@ -221,28 +220,28 @@ public class Render_3D implements Renderer {
             return null;
         }
 
-        private void handleSelection(int row, int col) {
-            int piece = game.getBoard()[row][col];
+        private void handleSelection(int x, int y) {
+            int piece = game.getBoard()[x][y];
 
             if (selectedPieceNode == null) {
                 if (piece != 0 && Integer.signum(piece) == currentPlayer) {
-                    Node pieceNode = findPieceNodeAt(row, col);
+                    Node pieceNode = findPieceNodeAt(x, y);
                     if (pieceNode != null) {
                         selectedPieceNode = pieceNode;
-                        selectedPosition = new int[]{row, col}; // Store the position
+                        selectedPosition = new int[]{x, y};
                         clearHighlights();
-                        currentHighlights = game.calculatePossibleMoves(row, col);
+                        currentHighlights = game.calculatePossibleMoves(x, y);
                         highlightSquares();
                     }
                 }
             } else {
                 // move the piece that is selected
-                boolean validMove = isValidMove(row, col);
+                boolean validMove = isValidMove(x, y);
                 if (validMove) {
                     int[] startPos = selectedPosition.clone();
                     Node movingPiece = selectedPieceNode;
 
-                    movePiece(startPos[0], startPos[1], row, col, movingPiece);
+                    movePiece(startPos[0], startPos[1], x, y, movingPiece);
 
                     selectedPieceNode = null;
                     selectedPosition = null;
@@ -255,12 +254,12 @@ public class Render_3D implements Renderer {
             }
         }
 
-        private Node findPieceNodeAt(int row, int col) {
+        private Node findPieceNodeAt(int x, int y) {
             for (Spatial child : boardNode.getChildren()) {
                 if (child instanceof Node) {
                     Vector3f pos = child.getLocalTranslation();
-                    if (Math.abs(pos.x - (col - 3.5f)) < 0.1f &&
-                            Math.abs(pos.z - (row - 3.5f)) < 0.1f) {
+                    if (Math.abs(pos.x - (y - 3.5f)) < 0.1f &&
+                            Math.abs(pos.z - (x - 3.5f)) < 0.1f) {
                         return (Node) child;
                     }
                 }
@@ -268,10 +267,10 @@ public class Render_3D implements Renderer {
             return null;
         }
 
-        private boolean isValidMove(int row, int col) {
+        private boolean isValidMove(int x, int y) {
             if (currentHighlights != null) {
                 for (int[] move : currentHighlights) {
-                    if (move[0] == row && move[1] == col) {
+                    if (move[0] == x && move[1] == y) {
                         return true;
                     }
                 }
@@ -279,31 +278,40 @@ public class Render_3D implements Renderer {
             return false;
         }
 
-        private void movePiece(int fromRow, int fromCol, int toRow, int toCol, Node pieceNode) {
-            int movingPiece = game.getBoard()[fromRow][fromCol];
+        private void movePiece(int fromX, int fromY, int toX, int toY, Node pieceNode) {
+            int movingPiece = game.getBoard()[fromX][fromY];
             float liftHeight = 1.0f;
             float moveDuration = 0.5f;
 
-            Node capturedPiece = findPieceNodeAt(toRow, toCol);
-            if (capturedPiece != null) {
-                boardNode.detachChild(capturedPiece);
+            // Check for en passant capture
+            if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
+                // For en passant, we need to remove the pawn that just moved two squares
+                Node capturedPawn = findPieceNodeAt(game.getLastMoveToX(), game.getLastMoveToY());
+                if (capturedPawn != null) {
+                    boardNode.detachChild(capturedPawn);
+                }
+            } else {
+                Node capturedPiece = findPieceNodeAt(toX, toY);
+                if (capturedPiece != null) {
+                    boardNode.detachChild(capturedPiece);
+                }
             }
 
             // Check for castling move
-            boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromCol - toCol) == 2;
-            
+            boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromY - toY) == 2;
+
             if (isCastling) {
                 // see the ype of castling
-                boolean isKingside = toCol > fromCol;
+                boolean isKingside = toY > fromY;
                 int rookFromCol = isKingside ? 7 : 0;
                 int rookToCol = isKingside ? 5 : 3;
-                
+
                 // Find rook
-                Node rookNode = findPieceNodeAt(fromRow, rookFromCol);
+                Node rookNode = findPieceNodeAt(fromX, rookFromCol);
                 if (rookNode != null) {
                     AnimationControl rookAnim = new AnimationControl(rookNode,
-                            new Vector3f((rookFromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
-                            new Vector3f((rookToCol - 3.5f), 0.2f, (fromRow - 3.5f)),
+                            new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)),
+                            new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)),
                             liftHeight,
                             moveDuration,
                             null);
@@ -312,20 +320,26 @@ public class Render_3D implements Renderer {
             }
 
             AnimationControl kingAnim = new AnimationControl(pieceNode,
-                    new Vector3f((fromCol - 3.5f), 0.2f, (fromRow - 3.5f)),
-                    new Vector3f((toCol - 3.5f), 0.2f, (toRow - 3.5f)),
+                    new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)),
+                    new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)),
                     liftHeight,
                     moveDuration,
                     () -> {
-                        // Update the state of bard
-                        game.getBoard()[toRow][toCol] = movingPiece;
-                        game.getBoard()[fromRow][fromCol] = 0;
+                        game.getBoard()[toX][toY] = movingPiece;
+                        game.getBoard()[fromX][fromY] = 0;
+
+                        if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
+                            game.performEnPassantCapture(toX, toY);
+                        }
+
+                        // Update last move AFTER updating the board but BEFORE castling
+                        game.updateLastMove(fromX, fromY, toX, toY);
 
                         if (isCastling) {
-                            if (toCol > fromCol) {
-                                game.performKingsideCastle(fromRow);
+                            if (toY > fromY) {
+                                game.performKingsideCastle(fromX);
                             } else {
-                                game.performQueensideCastle(fromRow);
+                                game.performQueensideCastle(fromX);
                             }
                         }
 
@@ -361,6 +375,12 @@ public class Render_3D implements Renderer {
                             () -> {
                                 game.getBoard()[aiMove.toX][aiMove.toY] = piece;
                                 game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+
+                                if (game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY)) {
+                                    game.performEnPassantCapture(aiMove.toX, aiMove.toY);
+                                }
+                                game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+
                                 currentPlayer = 1;
                             });
 

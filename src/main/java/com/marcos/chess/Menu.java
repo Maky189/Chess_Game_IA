@@ -120,15 +120,16 @@ public class Menu {
 
 
     private void startGame(boolean isMultiplayer) {
-        Game game = new Game(8);
+        GameFactory.resetGameInstance(8); // Reset the shared game instance
+        Game game = GameFactory.getGameInstance(8);
         currentRenderer.initialize();
 
         if (is3DMode) {
             primaryStage.hide();
-            currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
+            currentRenderer.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
         }
         else {
-            Scene scene = currentRenderer.createGameScene(game, windowsWidth, windowsHeight, isMultiplayer);
+            Scene scene = currentRenderer.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
             primaryStage.setFullScreenExitHint("");
             primaryStage.setScene(scene);
             primaryStage.setMaximized(true);

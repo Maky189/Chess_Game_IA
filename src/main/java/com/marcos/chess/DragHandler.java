@@ -39,71 +39,6 @@ public class DragHandler {
         this.isMultiplayer = isMultiplayer;
     }
 
-    private void animateMove(int fromX, int fromY, int toX, int toY, int piece, Runnable onFinished) {
-        if (isAnimating) return;
-        isAnimating = true;
-
-        if (movingPiece != null) {
-            pieceLayer.getChildren().remove(movingPiece);
-        }
-
-        movingPiece = new ImageView(board.obtainImage(piece));
-        movingPiece.setFitWidth(board.getSquareSize());
-        movingPiece.setFitHeight(board.getSquareSize());
-
-        // Calculate positions
-        double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0;
-        double boardStartY = (board.getWindowsHeight() - (board.getSize() * board.getSquareSize())) / 2.0;
-
-        double startX = boardStartX + (fromY * board.getSquareSize());
-        double startY = boardStartY + (fromX * board.getSquareSize());
-        double endX = boardStartX + (toY * board.getSquareSize());
-        double endY = boardStartY + (toX * board.getSquareSize());
-
-        pieceLayer.getChildren().add(movingPiece);
-
-        animationProgress = 0;
-
-        if (animator != null) {
-            animator.stop();
-        }
-
-        final long startTime = System.nanoTime();
-        final double duration = 200_000_000; // 200ms in nanoseconds
-
-        animator = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                double elapsed = now - startTime;
-                animationProgress = Math.min(elapsed / duration, 1.0);
-
-                double currentX = startX + (endX - startX) * animationProgress;
-                double currentY = startY + (endY - startY) * animationProgress;
-
-                movingPiece.setLayoutX(currentX);
-                movingPiece.setLayoutY(currentY);
-
-                if (animationProgress >= 1.0) {
-                    this.stop();
-                    pieceLayer.getChildren().remove(movingPiece);
-                    movingPiece = null;
-
-                    // Update board state
-                    game.getBoard()[toX][toY] = game.getBoard()[fromX][fromY];
-                    game.getBoard()[fromX][fromY] = 0;
-
-                    redraw();
-                    isAnimating = false;
-
-                    if (onFinished != null) {
-                        onFinished.run();
-                    }
-                }
-            }
-        };
-
-        animator.start();
-    }
 
     private void cleanupAnimation() {
         if (animator != null) {
@@ -142,20 +77,29 @@ public class DragHandler {
     }
 
     private void handleAIMove() {
-
         PauseTransition pause = new PauseTransition(Duration.seconds(DELAY));
         pause.setOnFinished(event -> {
             IA.Move aiMove = ia.makeMove(game, -1);
             if (aiMove != null) {
                 isAnimating = true;
-
-                // Get the piece that's moving
                 int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
 
+                // Determine if this is an en passant capture BEFORE making any moves
+                boolean isEnPassant = game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+                int capturedPawnX = game.getLastMoveToX();
+                int capturedPawnY = game.getLastMoveToY();
+
+                // Clear the source square
                 game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+
+                // If it's an en passant capture, remove the captured pawn immediately
+                if (isEnPassant) {
+                    game.getBoard()[capturedPawnX][capturedPawnY] = 0;
+                }
+
                 redraw();
 
-                // Create AI piece movement animation
+                // Create animation
                 ImageView aiPiece = new ImageView(board.obtainImage(piece));
                 aiPiece.setFitWidth(board.getSquareSize());
                 aiPiece.setFitHeight(board.getSquareSize());
@@ -183,7 +127,12 @@ public class DragHandler {
 
                 transition.setOnFinished(e -> {
                     pieceLayer.getChildren().remove(aiPiece);
+                    // Place the piece in its final position
                     game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+
+                    // Update the last move info
+                    game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+
                     redraw();
                     isAnimating = false;
                     changePlayer();
@@ -192,7 +141,6 @@ public class DragHandler {
                 transition.play();
             }
         });
-
         pause.play();
     }
 
@@ -207,23 +155,23 @@ public class DragHandler {
                     .anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
 
             if (validMove) {
-                int startY = fromY;
-
+                // If it's an en passant capture, remove the captured pawn first
+                // Make the move on the board
                 game.getBoard()[pos[0]][pos[1]] = selectedPiece;
                 game.getBoard()[fromX][fromY] = 0;
+                game.updateLastMove(fromX, fromY, pos[0], pos[1]);
 
-                if (Math.abs(selectedPiece) == 6 && Math.abs(pos[1] - startY) == 2) {
-                    if (pos[1] > startY) {
-                        game.performKingsideCastle(pos[0]);
-                    }
-                    else {
-                        game.performQueensideCastle(pos[0]);
-                    }
+                if (game.isEnPassantCapture(fromX, fromY, pos[0], pos[1])) {
+                    game.getBoard()[game.getLastMoveToX()][game.getLastMoveToY()] = 0;
+                    game.updateLastMove(game.getLastMoveToX(), game.getLastMoveToY(), pos[0], pos[1]);
                 }
+
+                // Update the last move information
+
 
                 redraw();
                 changePlayer();
-                
+
                 if (!isMultiplayer) {
                     handleAIMove();
                 }

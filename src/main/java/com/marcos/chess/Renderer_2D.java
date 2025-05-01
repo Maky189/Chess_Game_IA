@@ -18,10 +18,12 @@ public class Renderer_2D implements Renderer {
     }
 
     @Override
-    public Scene createGameScene(Game game, int windowsWidth, int windowsHeight, boolean isMultiplayer) {
+    public Scene createGameScene(int windowsWidth, int windowsHeight, boolean isMultiplayer) {
         int squareSize = 80;
         int size = 8;
-        
+
+        Game game =  GameFactory.getGameInstance(size);
+
         Board board = new Board(squareSize, size, windowsWidth, windowsHeight);
         canvas = new Canvas(windowsWidth, windowsHeight);
 
@@ -39,7 +41,7 @@ public class Renderer_2D implements Renderer {
 
         StackPane gameLayout = new StackPane();
         gameLayout.getChildren().addAll(canvas, pieceLayer);
-        
+
         Scene scene = new Scene(gameLayout, windowsWidth, windowsHeight);
         return scene;
     }
