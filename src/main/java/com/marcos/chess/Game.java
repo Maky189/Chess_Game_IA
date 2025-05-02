@@ -32,6 +32,7 @@ public class Game {
     private boolean whiteHasCastled = false;
     private boolean blackHasCastled = false;
 
+
     private int lastMoveFromX = -1;
     private int lastMoveFromY = -1;
     private int lastMoveToX = -1;

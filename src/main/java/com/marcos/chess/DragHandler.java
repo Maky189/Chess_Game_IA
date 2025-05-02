@@ -155,20 +155,33 @@ public class DragHandler {
                     .anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
 
             if (validMove) {
-                // If it's an en passant capture, remove the captured pawn first
-                // Make the move on the board
+                // Handle special moves first
+                int startY = fromY;
+                boolean isCastling = game.isCastlingMove(fromX, fromY, pos[0], pos[1]);
+                boolean isEnPassant = game.isEnPassantCapture(fromX, fromY, pos[0], pos[1]);
+
+                // Make the basic move
                 game.getBoard()[pos[0]][pos[1]] = selectedPiece;
                 game.getBoard()[fromX][fromY] = 0;
-                game.updateLastMove(fromX, fromY, pos[0], pos[1]);
 
-                if (game.isEnPassantCapture(fromX, fromY, pos[0], pos[1])) {
-                    game.getBoard()[game.getLastMoveToX()][game.getLastMoveToY()] = 0;
-                    game.updateLastMove(game.getLastMoveToX(), game.getLastMoveToY(), pos[0], pos[1]);
+                // Handle castling
+                if (Math.abs(selectedPiece) == 6 && Math.abs(pos[1] - startY) == 2) {
+                    if (pos[1] > startY) {
+                        game.performKingsideCastle(pos[0]);
+                    }
+                    else {
+                        game.performQueensideCastle(pos[0]);
+                    }
+                }
+                // Handle en passant
+                if (isEnPassant) {
+                    int capturedPawnRow = fromX; // Same row as moving pawn
+                    int capturedPawnCol = pos[1]; // Same column as destination
+                    game.getBoard()[capturedPawnRow][capturedPawnCol] = 0;
                 }
 
-                // Update the last move information
-
-
+                // Update game state
+                game.updateLastMove(fromX, fromY, pos[0], pos[1]);
                 redraw();
                 changePlayer();
 
