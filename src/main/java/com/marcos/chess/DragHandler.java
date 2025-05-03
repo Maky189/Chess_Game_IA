@@ -21,7 +21,6 @@ public class DragHandler {
     private double toX = 0;
     private double toY = 0;
     private List<int[]> possibleMoves = null;
-    private int currentPlayer = 1;
     private final IA ia;
     private final boolean isMultiplayer;
     private boolean isAnimating = false;
@@ -62,7 +61,7 @@ public class DragHandler {
             fromY = pos[1];
             selectedPiece = board[fromX][fromY];
 
-            if (selectedPiece != 0 && Integer.signum(selectedPiece) == currentPlayer) {
+            if (selectedPiece != 0 && Integer.signum(selectedPiece) == game.getCurrentPlayer()) {
                 possibleMoves = game.calculatePossibleMoves(fromX, fromY);
                 redrawWithHighlight();
                 board[fromX][fromY] = 0;
@@ -248,7 +247,7 @@ public class DragHandler {
     }
 
     private void changePlayer() {
-        currentPlayer = -currentPlayer;
+        game.switchPlayer();
     }
 
     private int[] getCoord(double x, double y) {

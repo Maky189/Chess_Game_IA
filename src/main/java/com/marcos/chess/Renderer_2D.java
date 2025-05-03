@@ -4,6 +4,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.input.KeyCode;
 
 public class Renderer_2D implements Renderer {
     private final int windowsWidth;
@@ -43,6 +44,17 @@ public class Renderer_2D implements Renderer {
         gameLayout.getChildren().addAll(canvas, pieceLayer);
 
         Scene scene = new Scene(gameLayout, windowsWidth, windowsHeight);
+
+        //Listener for "F3" to switch to 3D mode
+        scene.setOnKeyPressed(e -> {
+            if(e.getCode() == KeyCode.F3) {
+                cleanup();
+                Render_3D render_3D = new Render_3D(windowsWidth, windowsHeight);
+                render_3D.initialize();
+                render_3D.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
+            }
+        });
+
         return scene;
     }
 

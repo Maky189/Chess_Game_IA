@@ -1,7 +1,9 @@
 package com.marcos.chess;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
@@ -22,6 +24,7 @@ import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
 
 import java.util.List;
+import java.util.Vector;
 
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.renderer.ViewPort;
@@ -77,10 +80,12 @@ public class Render_3D implements Renderer {
         private Node selectedPieceNode = null;
         private int[] selectedPosition = null;
         private static boolean isMultiplayer;
-        private int currentPlayer = 1;
         private static IA ia;
         private Material whiteMaterial;
         private Material blackMaterial;
+        private boolean flyCamEnabled = false;
+        private Vector3f lastCameraPosition;
+        private Vector3f lastCameraDirection;
 
         public ChessGame(Game game, boolean isMultiplayer) {
             super();
@@ -149,14 +154,46 @@ public class Render_3D implements Renderer {
             // Setup Camera for my debug
             flyCam.setEnabled(false);
 
+            inputManager.addMapping("Toggle2D", new KeyTrigger(KeyInput.KEY_F3));
+            inputManager.addListener(actionListener, "Toggle2D");
+
             inputManager.addMapping("Select", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
             inputManager.addListener(actionListener, "Select");
 
+            inputManager.addMapping("ToggleFlyCam", new KeyTrigger(KeyInput.KEY_F6));
+            inputManager.addListener(actionListener, "ToggleFlyCam");
+
+            lastCameraPosition = new Vector3f(0, 10, 7);
+            lastCameraDirection = Vector3f.ZERO;
+
             // visibility of mouse
             inputManager.setCursorVisible(true);
+
+
         }
 
         private final ActionListener actionListener = (name, pressed, tpf) -> {
+
+            if (name.equals("ToggleFlyCam") && !pressed) {
+                flyCamEnabled = !flyCamEnabled;
+                if (flyCamEnabled) {
+                    lastCameraPosition = cam.getLocation().clone();
+                    lastCameraDirection = cam.getDirection().clone();
+                    flyCam.setEnabled(true);
+                    inputManager.setCursorVisible(false);
+                } else {
+                    flyCam.setEnabled(false);
+                    inputManager.setCursorVisible(true);
+                    cam.setLocation(lastCameraPosition);
+                    cam.lookAt(lastCameraDirection, Vector3f.UNIT_Y);
+                }
+            }
+
+
+            if (name.equals("Toggle2D") && !pressed) {
+                stop();
+            }
+
             if (name.equals("Select") && !pressed) {
                 try {
                     // From camera to the point I click
@@ -224,7 +261,7 @@ public class Render_3D implements Renderer {
             int piece = game.getBoard()[x][y];
 
             if (selectedPieceNode == null) {
-                if (piece != 0 && Integer.signum(piece) == currentPlayer) {
+                if (piece != 0 && Integer.signum(piece) == game.getCurrentPlayer()) {
                     Node pieceNode = findPieceNodeAt(x, y);
                     if (pieceNode != null) {
                         selectedPieceNode = pieceNode;
@@ -343,13 +380,17 @@ public class Render_3D implements Renderer {
                             }
                         }
 
-                        currentPlayer = -currentPlayer;
-                        if (!isMultiplayer && currentPlayer == -1) {
+                        changePlayer();
+                        if (!isMultiplayer && game.getCurrentPlayer() == -1) {
                             handleAIMove();
                         }
                     });
 
             pieceNode.addControl(kingAnim);
+        }
+
+        private void changePlayer() {
+            game.switchPlayer();
         }
 
         private void handleAIMove() {
@@ -381,7 +422,7 @@ public class Render_3D implements Renderer {
                                 }
                                 game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
 
-                                currentPlayer = 1;
+                                changePlayer();
                             });
 
                     pieceToMove.addControl(anim);

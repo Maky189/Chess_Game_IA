@@ -31,6 +31,7 @@ public class Game {
     private boolean hasQueensideRookMoved = false;
     private boolean whiteHasCastled = false;
     private boolean blackHasCastled = false;
+    private int currentPlayer = 1;
 
 
     private int lastMoveFromX = -1;
@@ -71,6 +72,7 @@ public class Game {
         board[7][4] = 6;
 
     }
+
     public int[][] getBoard() {
         return this.board;
     }
@@ -436,6 +438,14 @@ public class Game {
 
     public int getLastMovePiece() {
         return lastMovePiece;
+    }
+
+    public int getCurrentPlayer() {
+        return currentPlayer;
+    }
+
+    public void switchPlayer() {
+        currentPlayer = -currentPlayer;
     }
 
     public int getEnPassantTargetX() { return enPassantTargetX; }
