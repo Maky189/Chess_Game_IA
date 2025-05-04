@@ -1,5 +1,6 @@
 package com.marcos.chess;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -12,6 +13,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.cell.PropertyValueFactory;
+import jme3tools.savegame.SaveGame;
 
 public class Menu {
 
@@ -31,11 +36,20 @@ public class Menu {
     public void showMenu() {
         primaryStage.setTitle("Chess Game Menu");
 
-        StackPane startGameButton = createButton("Start Game", Color.BLUE, Color.DARKBLUE);
+        StackPane startGameButton = createButton("SinglePlayer", Color.BLUE, Color.DARKBLUE);
         startGameButton.setOnMouseClicked(e -> startGame(false));
         
-        StackPane multiplayerGameButton = createButton("Multiplayer Game", Color.GREEN, Color.DARKGREEN);
+        StackPane multiplayerGameButton = createButton("Multiplayer", Color.GREEN, Color.DARKGREEN);
         multiplayerGameButton.setOnMouseClicked(e -> startGame(true));
+
+        StackPane optionsButton = createButton("Options", Color.ORANGE, Color.DARKORANGE);
+        optionsButton.setOnMouseClicked(e -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Options");
+            alert.setHeaderText(null);
+            alert.setContentText("Options are not available yet.");
+            alert.showAndWait();
+        });
 
         StackPane Button_3D = createButton("3D", Color.GRAY, Color.GREEN, 100, 50);
         Button_3D.setOnMouseClicked(e -> {
@@ -56,7 +70,7 @@ public class Menu {
         });
         
         VBox mainButtons = new VBox(20);
-        mainButtons.getChildren().addAll(startGameButton, multiplayerGameButton);
+        mainButtons.getChildren().addAll(startGameButton, multiplayerGameButton, optionsButton);
         mainButtons.setAlignment(Pos.CENTER);
 
         AnchorPane root = new AnchorPane();
@@ -120,20 +134,26 @@ public class Menu {
 
 
     private void startGame(boolean isMultiplayer) {
-        GameFactory.resetGameInstance(8); // Reset the shared game instance
-        Game game = GameFactory.getGameInstance(8);
-        currentRenderer.initialize();
-
-        if (is3DMode) {
-            primaryStage.hide();
-            currentRenderer.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
+        if (!isMultiplayer) {
+            SaveGameMenu saveGameMenu = new SaveGameMenu(primaryStage, windowsWidth, windowsHeight);
+            Scene saveGameScene = saveGameMenu.createScene();
+            primaryStage.setScene(saveGameScene);
         }
         else {
-            Scene scene = currentRenderer.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
-            primaryStage.setFullScreenExitHint("");
-            primaryStage.setScene(scene);
-            primaryStage.setMaximized(true);
-            primaryStage.setFullScreen(true);
+            GameFactory.resetGameInstance(8); // Reset the shared game instance
+            Game game = GameFactory.getGameInstance(8);
+            currentRenderer.initialize();
+
+            if (is3DMode) {
+                primaryStage.hide();
+                currentRenderer.createGameScene(windowsWidth, windowsHeight, true);
+            } else {
+                Scene scene = currentRenderer.createGameScene(windowsWidth, windowsHeight, true);
+                primaryStage.setFullScreenExitHint("");
+                primaryStage.setScene(scene);
+                primaryStage.setMaximized(true);
+                primaryStage.setFullScreen(true);
+            }
         }
     }
 }
