@@ -17,6 +17,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 import jme3tools.savegame.SaveGame;
+import javafx.application.Platform;
 
 public class Menu {
 
@@ -51,22 +52,10 @@ public class Menu {
             alert.showAndWait();
         });
 
-        StackPane Button_3D = createButton("3D", Color.GRAY, Color.GREEN, 100, 50);
-        Button_3D.setOnMouseClicked(e -> {
-            try {
-                is3DMode = !is3DMode;
-                if(is3DMode) {
-                    currentRenderer.cleanup();
-                    currentRenderer = new Render_3D(windowsWidth, windowsHeight);
-                }
-                else {
-                    currentRenderer.cleanup();
-                    currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
-                }
-            }
-            catch (Exception ex) {
-                currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
-            }
+        StackPane quitButton = createButton("Quit", Color.DARKRED, Color.DARKRED, 100, 50);
+        quitButton.setOnMouseClicked(e -> {
+            Platform.exit();
+            System.exit(0);
         });
         
         VBox mainButtons = new VBox(20);
@@ -74,15 +63,15 @@ public class Menu {
         mainButtons.setAlignment(Pos.CENTER);
 
         AnchorPane root = new AnchorPane();
-        root.getChildren().addAll(mainButtons, Button_3D);
+        root.getChildren().addAll(mainButtons, quitButton);
         
 
         AnchorPane.setTopAnchor(mainButtons, (windowsHeight - mainButtons.getPrefHeight()) / 2);
-        AnchorPane.setLeftAnchor(mainButtons, (double) (windowsWidth - 300) / 2); // 300 is the width of main buttons
+        AnchorPane.setLeftAnchor(mainButtons, (double) (windowsWidth - 300) / 2);
         
 
-        AnchorPane.setTopAnchor(Button_3D, 20.0);
-        AnchorPane.setLeftAnchor(Button_3D, 20.0);
+        AnchorPane.setTopAnchor(quitButton, 20.0);
+        AnchorPane.setLeftAnchor(quitButton, 20.0);
         
         root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
 
@@ -140,7 +129,7 @@ public class Menu {
             primaryStage.setScene(saveGameScene);
         }
         else {
-            GameFactory.resetGameInstance(8); // Reset the shared game instance
+            GameFactory.resetGameInstance(8);
             Game game = GameFactory.getGameInstance(8);
             currentRenderer.initialize();
 

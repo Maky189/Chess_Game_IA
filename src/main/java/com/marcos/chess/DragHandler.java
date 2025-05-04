@@ -104,8 +104,7 @@ public class DragHandler {
                 aiPiece.setFitHeight(board.getSquareSize());
 
                 double offsetSquares = 4.6;
-                double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0
-                        + (offsetSquares * board.getSquareSize());
+                double boardStartX = (board.getWindowsWidth() - (board.getSize() * board.getSquareSize())) / 2.0 + (offsetSquares * board.getSquareSize());
                 double boardStartY = (board.getWindowsHeight() - (board.getSize() * board.getSquareSize())) / 2.0;
 
                 double startX = boardStartX + (aiMove.fromY * board.getSquareSize());
@@ -150,8 +149,7 @@ public class DragHandler {
         boolean validMove = false;
 
         if (pos != null && possibleMoves != null) {
-            validMove = possibleMoves.stream()
-                    .anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
+            validMove = possibleMoves.stream().anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
 
             if (validMove) {
                 // Handle special moves first
@@ -174,8 +172,8 @@ public class DragHandler {
                 }
                 // Handle en passant
                 if (isEnPassant) {
-                    int capturedPawnRow = fromX; // Same row as moving pawn
-                    int capturedPawnCol = pos[1]; // Same column as destination
+                    int capturedPawnRow = fromX;
+                    int capturedPawnCol = pos[1];
                     game.getBoard()[capturedPawnRow][capturedPawnCol] = 0;
                 }
 
@@ -222,12 +220,7 @@ public class DragHandler {
         if (selectedPiece != 0) {
             double x = toX - board.getSquareSize() / 2.0;
             double y = toY - board.getSquareSize() / 2.0;
-            canvas.getGraphicsContext2D().drawImage(
-                    board.obtainImage(selectedPiece),
-                    x, y,
-                    board.getSquareSize(),
-                    board.getSquareSize()
-            );
+            canvas.getGraphicsContext2D().drawImage(board.obtainImage(selectedPiece), x, y, board.getSquareSize(), board.getSquareSize());
         }
     }
 

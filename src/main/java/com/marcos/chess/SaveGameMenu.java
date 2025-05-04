@@ -14,7 +14,9 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import jme3tools.savegame.SaveGame;
+import javafx.stage.Modality;
+import javafx.scene.control.TextField;
+import com.marcos.chess.SaveGame;
 import javafx.scene.layout.AnchorPane;
 
 public class SaveGameMenu {
@@ -32,18 +34,14 @@ public class SaveGameMenu {
         AnchorPane root = new AnchorPane();
         root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
 
-        // Create title
+
         Text title = new Text("Saved Games");
         title.setFill(Color.WHITE);
         title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
 
-        // Create table with custom styling
         TableView<SaveGame> table = new TableView<>();
-        table.setStyle("-fx-background-color: rgba(255,255,255,0.85);" +
-                       "-fx-table-cell-border-color: transparent;" +
-                       "-fx-font-size: 16px;");
+        table.setStyle("-fx-background-color: rgba(255, 255, 255, 0.86);" + "-fx-table-cell-border-color: transparent;" + "-fx-font-size: 16px;");
 
-        // Configure columns with better styling
         TableColumn<SaveGame, String> nameColumn = new TableColumn<>("Game Name");
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         nameColumn.setPrefWidth(300);
@@ -56,48 +54,73 @@ public class SaveGameMenu {
         modeColumn.setCellValueFactory(new PropertyValueFactory<>("mode"));
         modeColumn.setPrefWidth(150);
 
-        // Style the column headers
-        String columnStyle = "-fx-background-color: #2E7D32;" + // Changed to a nice green color
-                            "-fx-text-fill: white;" +
-                            "-fx-font-weight: bold;" +
-                            "-fx-font-size: 18px;" +
-                            "-fx-padding: 10px;";
+        String columnStyle = "" + "-fx-text-fill: black;" + "-fx-font-weight: bold;" + "-fx-font-size: 18px;" + "-fx-padding: 10px;";
 
         nameColumn.setStyle(columnStyle);
         dateColumn.setStyle(columnStyle);
         modeColumn.setStyle(columnStyle);
 
         table.getColumns().addAll(nameColumn, dateColumn, modeColumn);
-        table.setFixedCellSize(50); // Larger rows
+        table.setFixedCellSize(50);
 
-        // Create buttons with matching style from Menu class
+        // Add save games
+        table.getItems().addAll(GameSaver.getSavedGames());
+
         StackPane newGameButton = createButton("New Game", Color.BLUE, Color.DARKBLUE);
         StackPane loadGameButton = createButton("Load Game", Color.GREEN, Color.DARKGREEN);
+        StackPane deleteButton = createButton("Delete", Color.RED, Color.DARKRED);
         StackPane backButton = createButton("Back", Color.GRAY, Color.DARKGRAY);
 
-        // Create VBox for buttons
         VBox buttonBox = new VBox(20);
-        buttonBox.getChildren().addAll(newGameButton, loadGameButton, backButton);
+        buttonBox.getChildren().addAll(newGameButton, loadGameButton, deleteButton, backButton);
         buttonBox.setAlignment(Pos.CENTER);
 
-        // Layout setup
         AnchorPane.setTopAnchor(title, 50.0);
         AnchorPane.setLeftAnchor(title, 50.0);
-
         AnchorPane.setTopAnchor(table, 150.0);
         AnchorPane.setLeftAnchor(table, 50.0);
         AnchorPane.setRightAnchor(table, 350.0);
         AnchorPane.setBottomAnchor(table, 50.0);
-
         AnchorPane.setTopAnchor(buttonBox, 150.0);
         AnchorPane.setRightAnchor(buttonBox, 50.0);
 
         root.getChildren().addAll(title, table, buttonBox);
 
-        // Create scene with the original window dimensions
+        backButton.setOnMouseClicked(e -> {
+            Menu menu = new Menu(stage, windowsWidth, windowsHeight);
+            menu.showMenu();
+        });
+
+        newGameButton.setOnMouseClicked(e -> {
+            showNewGameDialog();
+        });
+
+        loadGameButton.setOnMouseClicked(e -> {
+            SaveGame selected = table.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                Game game = GameSaver.loadGame(selected.getName());
+                if (game != null) {
+                    Renderer renderer = new Renderer_2D(windowsWidth, windowsHeight);
+                    ((Renderer_2D)renderer).setStage(stage);  // Set stage
+                    ((Renderer_2D)renderer).setCurrentProfile(selected.getName());  // Set profile name
+                    renderer.initialize();
+                    Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
+                    stage.setScene(gameScene);
+                    stage.setFullScreen(true);
+                }
+            }
+        });
+
+        deleteButton.setOnMouseClicked(e -> {
+            SaveGame selected = table.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                GameSaver.deleteProfile(selected.getName());
+                table.getItems().clear();
+                table.getItems().addAll(GameSaver.getSavedGames());
+            }
+        });
+
         Scene scene = new Scene(root, windowsWidth, windowsHeight);
-        
-        // Set the scene but maintain the current window size
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.setFullScreenExitHint("");
@@ -120,5 +143,46 @@ public class SaveGameMenu {
         button.setOnMouseExited(e -> rectangle.setFill(defaultColor));
 
         return button;
+    }
+
+    private void showNewGameDialog() {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(stage);
+        dialog.setTitle("New Game");
+
+        VBox dialogVbox = new VBox(20);
+        dialogVbox.setAlignment(Pos.CENTER);
+        dialogVbox.setPadding(new Insets(20));
+        dialogVbox.setStyle("-fx-background-color: white;");
+
+        Text label = new Text("Enter save game name:");
+        label.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+        TextField nameField = new TextField();
+        nameField.setMaxWidth(300);
+        nameField.setStyle("-fx-font-size: 14px;");
+
+        StackPane confirmButton = createButton("Start Game", Color.GREEN, Color.DARKGREEN);
+        confirmButton.setOnMouseClicked(e -> {
+            String gameName = nameField.getText().trim();
+            if (!gameName.isEmpty()) {
+                dialog.close();
+                GameFactory.resetGameInstance(8);
+                Game game = GameFactory.getGameInstance(8);
+                GameSaver.saveGame(gameName, game, "SinglePlayer");
+                Renderer renderer = new Renderer_2D(windowsWidth, windowsHeight);
+                ((Renderer_2D)renderer).setCurrentProfile(gameName);
+                renderer.initialize();
+                Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
+                stage.setScene(gameScene);
+                stage.setFullScreen(true);
+            }
+        });
+
+        dialogVbox.getChildren().addAll(label, nameField, confirmButton);
+        Scene dialogScene = new Scene(dialogVbox, 400, 200);
+        dialog.setScene(dialogScene);
+        dialog.show();
     }
 }

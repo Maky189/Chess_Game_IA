@@ -74,14 +74,11 @@ public class Game {
     }
 
     public int[][] getBoard() {
-        return this.board;
+        return board;
     }
 
-    public void setBoard(int[][] newBoard) {
-        this.board = new int[newBoard.length][newBoard.length];
-        for (int i = 0; i < newBoard.length; i++) {
-            System.arraycopy(newBoard[i], 0, this.board[i], 0, newBoard[i].length);
-        }
+    public void setBoard(int[][] board) {
+        this.board = board;
     }
 
     private boolean isInBounds(int x, int y) {
@@ -95,9 +92,7 @@ public class Game {
         if (moves.isEmpty()) return moves;
 
         //check for moeves that could do a check
-        moves = moves.stream()
-                .filter(move -> !wouldResultInCheck(x, y, move[0], move[1]))
-                .toList();
+        moves = moves.stream().filter(move -> !wouldResultInCheck(x, y, move[0], move[1])).toList();
 
         // check pinned piece
         if (Math.abs(piece) != 6) {
@@ -155,9 +150,7 @@ public class Game {
                             };
 
                             if (canPin) {
-                                return moves.stream()
-                                        .filter(move -> isInLine(kingX, kingY, move[0], move[1], dx, dy))
-                                        .toList();
+                                return moves.stream().filter(move -> isInLine(kingX, kingY, move[0], move[1], dx, dy)).toList();
                             }
                         }
                         break;
@@ -339,9 +332,7 @@ public class Game {
             int x = kingX - pawnDirection;
             int y = kingY + i;
             if (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
-                if (tempBoard[x][y] != 0 &&
-                        Integer.signum(tempBoard[x][y]) == opponentSign &&
-                        Math.abs(tempBoard[x][y]) == 1) {
+                if (tempBoard[x][y] != 0 && Integer.signum(tempBoard[x][y]) == opponentSign && Math.abs(tempBoard[x][y]) == 1) {
                     return true;
                 }
             }
@@ -391,9 +382,7 @@ public class Game {
                     moves.add(new int[]{newX, newY});
                 }
                 // En passant capture
-                else if (newX == enPassantTargetX && newY == enPassantTargetY
-                        && Math.abs(lastMovePiece) == 1
-                        && Integer.signum(lastMovePiece) != Integer.signum(piece)) {
+                else if (newX == enPassantTargetX && newY == enPassantTargetY && Math.abs(lastMovePiece) == 1 && Integer.signum(lastMovePiece) != Integer.signum(piece)) {
                     moves.add(new int[]{newX, newY});
                 }
             }
@@ -442,6 +431,18 @@ public class Game {
 
     public int getCurrentPlayer() {
         return currentPlayer;
+    }
+
+    public void setCurrentPlayer(int player) {
+        this.currentPlayer = player;
+    }
+
+    public int getLastMoveFromX() {
+        return lastMoveFromX;
+    }
+
+    public int getLastMoveFromY() {
+        return lastMoveFromY;
     }
 
     public void switchPlayer() {
@@ -504,8 +505,7 @@ public class Game {
             int newY = y + possibility[1];
 
             // Validate if is in bounds and not opponent in square
-            if (isInBounds(newX, newY) &&
-                    (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
+            if (isInBounds(newX, newY) && (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
                 moves.add(new int[]{newX, newY});
             }
         }
@@ -536,9 +536,7 @@ public class Game {
         }
 
         int opponentSign = piece > 0 ? -1 : 1;
-        return !isKingThreatened(board, row, 4, opponentSign) &&
-                !isKingThreatened(board, row, 5, opponentSign) &&
-                !isKingThreatened(board, row, 6, opponentSign);
+        return !isKingThreatened(board, row, 4, opponentSign) && !isKingThreatened(board, row, 5, opponentSign) && !isKingThreatened(board, row, 6, opponentSign);
     }
 
     private boolean canCastleQueenside(int row, int piece) {
@@ -555,9 +553,7 @@ public class Game {
         }
 
         int opponentSign = piece > 0 ? -1 : 1;
-        return !isKingThreatened(board, row, 4, opponentSign) &&
-                !isKingThreatened(board, row, 3, opponentSign) &&
-                !isKingThreatened(board, row, 2, opponentSign);
+        return !isKingThreatened(board, row, 4, opponentSign) && !isKingThreatened(board, row, 3, opponentSign) && !isKingThreatened(board, row, 2, opponentSign);
     }
 
     public void performKingsideCastle(int kingRow) {
@@ -595,8 +591,7 @@ public class Game {
             int newY = y + possibility[1];
 
             // Validate indext
-            if (isInBounds(newX, newY) &&
-                    (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
+            if (isInBounds(newX, newY) && (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
                 moves.add(new int[]{newX, newY});
             }
         }

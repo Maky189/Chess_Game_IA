@@ -38,7 +38,7 @@ public class Board {
 
     public void drawBoard(GraphicsContext gc, int[][] board) {
         Color white = Color.WHITE;
-        Color black = Color.BLACK;
+        Color black = Color.LIGHTSTEELBLUE;
         Color checkColor = Color.DARKRED;
 
         //background
@@ -67,8 +67,7 @@ public class Board {
 
                 gc.fillRect(x1, y1, squareSize, squareSize);
 
-                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) ||
-                    (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
+                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) || (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
                     gc.setFill(checkColor);
                     gc.fillRect(x1, y1, squareSize, squareSize);
                 }
@@ -109,7 +108,7 @@ public class Board {
 
     public void drawBoardWithHighlights(GraphicsContext gc, int[][] board, List<int[]> highlights) {
         Color white = Color.WHITE;
-        Color black = Color.BLACK;
+        Color black = Color.LIGHTSTEELBLUE;
         Color highlightColor = Color.BLUE;
         Color captureHighlightColor = Color.LIGHTCORAL;
         Color checkColor = Color.DARKRED;
@@ -136,8 +135,7 @@ public class Board {
                 double y1 = y + i * squareSize;
 
                 gc.fillRect(x1, y1, squareSize, squareSize);
-                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) ||
-                    (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
+                if ((whiteKingInCheck && whiteKingPos != null && i == whiteKingPos[0] && j == whiteKingPos[1]) || (blackKingInCheck && blackKingPos != null && i == blackKingPos[0] && j == blackKingPos[1])) {
                     gc.setFill(checkColor);
                     gc.fillRect(x1, y1, squareSize, squareSize);
                 }

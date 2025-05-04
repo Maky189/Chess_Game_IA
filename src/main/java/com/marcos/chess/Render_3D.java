@@ -55,8 +55,7 @@ public class Render_3D implements Renderer {
 
         settings.setFullscreen(true);
 
-        java.awt.DisplayMode displayMode = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
-                .getDefaultScreenDevice().getDisplayMode();
+        java.awt.DisplayMode displayMode = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDisplayMode();
         settings.setFrequency(displayMode.getRefreshRate());
 
         settings.setResolution(displayMode.getWidth(), displayMode.getHeight());
@@ -346,22 +345,12 @@ public class Render_3D implements Renderer {
                 // Find rook
                 Node rookNode = findPieceNodeAt(fromX, rookFromCol);
                 if (rookNode != null) {
-                    AnimationControl rookAnim = new AnimationControl(rookNode,
-                            new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)),
-                            new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)),
-                            liftHeight,
-                            moveDuration,
-                            null);
+                    AnimationControl rookAnim = new AnimationControl(rookNode, new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)), new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)), liftHeight, moveDuration, null);
                     rookNode.addControl(rookAnim);
                 }
             }
 
-            AnimationControl kingAnim = new AnimationControl(pieceNode,
-                    new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)),
-                    new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)),
-                    liftHeight,
-                    moveDuration,
-                    () -> {
+            AnimationControl kingAnim = new AnimationControl(pieceNode, new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)), new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)), liftHeight, moveDuration, () -> {
                         game.getBoard()[toX][toY] = movingPiece;
                         game.getBoard()[fromX][fromY] = 0;
 
@@ -408,12 +397,7 @@ public class Render_3D implements Renderer {
                     float liftHeight = 1.0f;
                     float moveDuration = 0.5f;
 
-                    AnimationControl anim = new AnimationControl(pieceToMove,
-                            new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
-                            new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)),
-                            liftHeight,
-                            moveDuration,
-                            () -> {
+                    AnimationControl anim = new AnimationControl(pieceToMove, new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)), new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)), liftHeight, moveDuration, () -> {
                                 game.getBoard()[aiMove.toX][aiMove.toY] = piece;
                                 game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
 
