@@ -1,6 +1,5 @@
 package com.marcos.chess;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -13,10 +12,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.cell.PropertyValueFactory;
-import jme3tools.savegame.SaveGame;
 import javafx.application.Platform;
 
 public class Menu {
@@ -41,7 +36,13 @@ public class Menu {
         startGameButton.setOnMouseClicked(e -> startGame(false));
         
         StackPane multiplayerGameButton = createButton("Multiplayer", Color.GREEN, Color.DARKGREEN);
-        multiplayerGameButton.setOnMouseClicked(e -> startGame(true));
+        multiplayerGameButton.setOnMouseClicked(e -> {
+            MenuMultiplayer multiplayerMenu = new MenuMultiplayer(primaryStage, windowsWidth, windowsHeight);
+            Scene multiplayerScene = multiplayerMenu.createScene();
+            primaryStage.setScene(multiplayerScene);
+            primaryStage.setFullScreenExitHint("");
+            primaryStage.setFullScreen(true);
+        });
 
         StackPane optionsButton = createButton("Options", Color.ORANGE, Color.DARKORANGE);
         optionsButton.setOnMouseClicked(e -> {
@@ -129,8 +130,8 @@ public class Menu {
             primaryStage.setScene(saveGameScene);
         }
         else {
-            GameFactory.resetGameInstance(8);
-            Game game = GameFactory.getGameInstance(8);
+            MainGame.resetGameInstance(8);
+            Game game = MainGame.getGameInstance(8);
             currentRenderer.initialize();
 
             if (is3DMode) {

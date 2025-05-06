@@ -38,6 +38,7 @@ dependencies {
     implementation("org.jmonkeyengine:jme3-desktop:3.5.2-stable")
     implementation("org.jmonkeyengine:jme3-lwjgl:3.5.2-stable")
     implementation("org.jmonkeyengine:jme3-plugins:3.5.2-stable")
+    implementation("org.jmonkeyengine:jme3-effects:3.5.2-stable")  // Add this line for SSAO filter
 }
 
 fun platform(): String =

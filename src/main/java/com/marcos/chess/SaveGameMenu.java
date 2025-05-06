@@ -16,7 +16,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.Modality;
 import javafx.scene.control.TextField;
-import com.marcos.chess.SaveGame;
 import javafx.scene.layout.AnchorPane;
 
 public class SaveGameMenu {
@@ -168,8 +167,8 @@ public class SaveGameMenu {
             String gameName = nameField.getText().trim();
             if (!gameName.isEmpty()) {
                 dialog.close();
-                GameFactory.resetGameInstance(8);
-                Game game = GameFactory.getGameInstance(8);
+                MainGame.resetGameInstance(8);
+                Game game = MainGame.getGameInstance(8);
                 GameSaver.saveGame(gameName, game, "SinglePlayer");
                 Renderer renderer = new Renderer_2D(windowsWidth, windowsHeight);
                 ((Renderer_2D)renderer).setCurrentProfile(gameName);

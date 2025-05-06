@@ -15,24 +15,24 @@ public class GameSaver {
             Files.createDirectories(Paths.get(SAVE_DIR));
             String filename = name.replaceAll("[^a-zA-Z0-9]", "_") + ".chess";
             Path savePath = Paths.get(SAVE_DIR, filename);
-            
+
             try (ObjectOutputStream objects = new ObjectOutputStream(new FileOutputStream(savePath.toFile()))) {
                 int[][] boardCopy = new int[game.getBoard().length][];
                 for (int i = 0; i < game.getBoard().length; i++) {
                     boardCopy[i] = game.getBoard()[i].clone();
                 }
-                
+
                 GameState state = new GameState(
-                    boardCopy,
-                    mode,
-                    game.getCurrentPlayer(),
-                    game.getLastMoveFromX(),
-                    game.getLastMoveFromY(),
-                    game.getLastMoveToX(),
-                    game.getLastMoveToY(),
-                    game.getLastMovePiece(),
-                    game.getEnPassantTargetX(),
-                    game.getEnPassantTargetY()
+                        boardCopy,
+                        mode,
+                        game.getCurrentPlayer(),
+                        game.getLastMoveFromX(),
+                        game.getLastMoveFromY(),
+                        game.getLastMoveToX(),
+                        game.getLastMoveToY(),
+                        game.getLastMovePiece(),
+                        game.getEnPassantTargetX(),
+                        game.getEnPassantTargetY()
                 );
                 objects.writeObject(state);
             }
@@ -45,18 +45,13 @@ public class GameSaver {
         try {
             String filename = name.replaceAll("[^a-zA-Z0-9]", "_") + ".chess";
             Path savePath = Paths.get(SAVE_DIR, filename);
-            
+
             try (ObjectInputStream objects = new ObjectInputStream(new FileInputStream(savePath.toFile()))) {
                 GameState state = (GameState) objects.readObject();
-                Game game = GameFactory.getGameInstance(8);
+                Game game = MainGame.getGameInstance(8);
                 game.setBoard(state.board.clone());
                 game.setCurrentPlayer(state.currentPlayer);
-                game.updateLastMove(
-                    state.lastMoveFromX,
-                    state.lastMoveFromY,
-                    state.lastMoveToX,
-                    state.lastMoveToY
-                );
+                game.updateLastMove(state.lastMoveFromX, state.lastMoveFromY, state.lastMoveToX, state.lastMoveToY);
                 return game;
             }
         } catch (IOException | ClassNotFoundException e) {
@@ -69,17 +64,17 @@ public class GameSaver {
         List<SaveGame> savedGames = new ArrayList<>();
         try {
             Files.createDirectories(Paths.get(SAVE_DIR));
-            
+
             Files.list(Paths.get(SAVE_DIR)).filter(path -> path.toString().endsWith(".chess")).forEach(path -> {
-                     try {
-                         BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-                         String name = path.getFileName().toString().replace(".chess", "");
-                         String date = attrs.creationTime().toString().split("\\.")[0].replace("T", " ");
-                         savedGames.add(new SaveGame(name, date, "White"));
-                     } catch (IOException e) {
-                         e.printStackTrace();
-                     }
-                 });
+                try {
+                    BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+                    String name = path.getFileName().toString().replace(".chess", "");
+                    String date = attrs.creationTime().toString().split("\\.")[0].replace("T", " ");
+                    savedGames.add(new SaveGame(name, date, "White"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -96,10 +91,9 @@ public class GameSaver {
         }
     }
 }
-
 class GameState implements Serializable {
     private static final long serialVersionUID = 1L;
-    
+
     final int[][] board;
     final String mode;
     final int currentPlayer;
@@ -127,3 +121,4 @@ class GameState implements Serializable {
         this.enPassantTargetY = enPassantTargetY;
     }
 }
+

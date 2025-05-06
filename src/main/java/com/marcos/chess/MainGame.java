@@ -1,6 +1,6 @@
 package com.marcos.chess;
 
-public class GameFactory {
+public class MainGame {
     private static Game sharedGameInstance;
 
     public static Game getGameInstance(int size) {

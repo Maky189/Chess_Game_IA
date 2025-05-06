@@ -1,13 +1,11 @@
 package com.marcos.chess;
 
-import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.image.Image;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import java.util.List;
-import java.util.ArrayList;
 
 public class Board {
 
@@ -175,10 +173,10 @@ public class Board {
         return null;
     }
 
-    public boolean isCheck(int[][] board, int kingX, int kingY, int opponentSign) {
+    public boolean isCheck(int[][] board, int kingX, int kingY, int opponent) {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                if (Integer.signum(board[i][j]) == opponentSign) {
+                if (Integer.signum(board[i][j]) == opponent) {
                     List<int[]> possibleMoves = calculatePossibleMoves(board, i, j);
                     for (int[] move : possibleMoves) {
                         if (move[0] == kingX && move[1] == kingY) {

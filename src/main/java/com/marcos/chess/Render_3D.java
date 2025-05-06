@@ -17,14 +17,17 @@ import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 import com.jme3.material.RenderState.BlendMode;
+import com.jme3.material.TechniqueDef.LightMode;
 import com.jme3.input.MouseInput;
 import com.jme3.collision.CollisionResults;
 import com.jme3.math.Ray;
+import com.jme3.material.RenderState;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
+import com.jme3.renderer.queue.RenderQueue.ShadowMode;
 
 import java.util.List;
-import java.util.Vector;
 
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.renderer.ViewPort;
@@ -34,7 +37,7 @@ public class Render_3D implements Renderer {
     private final int windowsWidth;
     private final int windowsHeight;
     private ChessGame chessApp;
-    private Game game = GameFactory.getGameInstance(8);
+    private Game game = MainGame.getGameInstance(8);
 
     public Render_3D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
@@ -132,21 +135,47 @@ public class Render_3D implements Renderer {
         private void setupLighting() {
             viewPort.setBackgroundColor(new ColorRGBA(0.8f, 0.4f, 0.2f, 1.0f));
 
+            // Main directional light (sun)
             DirectionalLight sun = new DirectionalLight();
             sun.setDirection(new Vector3f(-0.5f, -1.5f, -0.5f).normalizeLocal());
-            sun.setColor(ColorRGBA.White.mult(0.7f));
+            sun.setColor(ColorRGBA.White.mult(1.0f));
             rootNode.addLight(sun);
 
-            // Ambient light
+            // Ambient light for overall scene brightness
             com.jme3.light.AmbientLight ambient = new com.jme3.light.AmbientLight();
-            ambient.setColor(new ColorRGBA(0.3f, 0.25f, 0.2f, 1.0f));
+            ambient.setColor(new ColorRGBA(0.4f, 0.4f, 0.4f, 1.0f));
             rootNode.addLight(ambient);
 
-            // Secondary light
+            // Fill light for softer shadows
             DirectionalLight fillLight = new DirectionalLight();
-            fillLight.setDirection(new Vector3f(1f, -1f, 1f).normalizeLocal());
+            fillLight.setDirection(new Vector3f(1f, -0.8f, 0.8f).normalizeLocal());
             fillLight.setColor(ColorRGBA.White.mult(0.3f));
             rootNode.addLight(fillLight);
+
+            // Back light for rim highlighting
+            DirectionalLight backLight = new DirectionalLight();
+            backLight.setDirection(new Vector3f(0.5f, -0.5f, -1f).normalizeLocal());
+            backLight.setColor(ColorRGBA.White.mult(0.2f));
+            rootNode.addLight(backLight);
+
+            // Rim light for piece edges
+            DirectionalLight rimLight = new DirectionalLight();
+            rimLight.setDirection(new Vector3f(0.0f, -0.5f, 1.0f).normalizeLocal());
+            rimLight.setColor(ColorRGBA.White.mult(0.4f));
+            rootNode.addLight(rimLight);
+
+            // Ground reflection light
+            DirectionalLight groundLight = new DirectionalLight();
+            groundLight.setDirection(new Vector3f(0.0f, 1.0f, 0.0f).normalizeLocal());
+            groundLight.setColor(new ColorRGBA(0.3f, 0.3f, 0.3f, 1.0f));
+            rootNode.addLight(groundLight);
+
+            // Enable PBR if available
+            renderManager.setPreferredLightMode(LightMode.SinglePass);
+            renderManager.setSinglePassLightBatchSize(3);
+
+            // Enable shadows if supported
+            
         }
 
         private void setupInputHandling() {
@@ -585,17 +614,29 @@ public class Render_3D implements Renderer {
                     material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "piece_white.png"));
                     material.setColor("Ambient", new ColorRGBA(0.8f, 0.8f, 0.8f, 1.0f));
                     material.setColor("Diffuse", new ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
-                    material.setColor("Specular", new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
+                    material.setColor("Specular", new ColorRGBA(0.9f, 0.9f, 0.9f, 1.0f));
+
+                    material.setFloat("Shininess", 128f);
+                    material.setBoolean("UseMaterialColors", true);
+                    material.setColor("GlowColor", new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
                 } else {
                     material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "piece_black.png"));
                     material.setColor("Ambient", new ColorRGBA(0.02f, 0.02f, 0.02f, 1.0f));
                     material.setColor("Diffuse", new ColorRGBA(0.05f, 0.05f, 0.05f, 1.0f));
-                    material.setColor("Specular", new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
+                    material.setColor("Specular", new ColorRGBA(0.8f, 0.8f, 0.8f, 1.0f));
+
+                    material.setFloat("Shininess", 96f);
+                    material.setBoolean("UseMaterialColors", true);
+                    material.setColor("GlowColor", new ColorRGBA(0.05f, 0.05f, 0.05f, 1.0f));
                 }
 
                 material.setBoolean("UseMaterialColors", true);
                 material.setTransparent(false);
                 material.setFloat("Shininess", 64f);
+
+                material.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                material.getAdditionalRenderState().setDepthTest(true);
+                material.getAdditionalRenderState().setDepthWrite(true);
 
                 material.getAdditionalRenderState().setBlendMode(BlendMode.Off);
                 pieceNode.setQueueBucket(RenderQueue.Bucket.Opaque);
@@ -603,6 +644,13 @@ public class Render_3D implements Renderer {
                 pieceNode.depthFirstTraversal(spatial -> {
                     if (spatial instanceof Geometry) {
                         ((Geometry) spatial).setMaterial(material);
+                        ((Geometry) spatial).setQueueBucket(RenderQueue.Bucket.Opaque);
+                        ((Geometry) spatial).setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+                        ((Geometry) spatial).getMaterial().getAdditionalRenderState().setBlendMode(BlendMode.Off);
+                        ((Geometry) spatial).getMaterial().getAdditionalRenderState().setDepthTest(true);
+                        ((Geometry) spatial).getMaterial().getAdditionalRenderState().setDepthWrite(true);
+                        ((Geometry) spatial).getMaterial().getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
+                        ((Geometry) spatial).setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
                     }
                 });
             }

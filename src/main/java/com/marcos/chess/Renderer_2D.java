@@ -52,7 +52,7 @@ public class Renderer_2D implements Renderer {
         int squareSize = 80;
         int size = 8;
 
-        Game game =  GameFactory.getGameInstance(size);
+        Game game =  MainGame.getGameInstance(size);
 
         Board board = new Board(squareSize, size, windowsWidth, windowsHeight);
         canvas = new Canvas(windowsWidth, windowsHeight);
