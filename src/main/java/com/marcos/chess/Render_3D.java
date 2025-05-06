@@ -22,10 +22,8 @@ import com.jme3.input.MouseInput;
 import com.jme3.collision.CollisionResults;
 import com.jme3.math.Ray;
 import com.jme3.material.RenderState;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
-import com.jme3.renderer.queue.RenderQueue.ShadowMode;
 
 import java.util.List;
 
@@ -112,7 +110,7 @@ public class Render_3D implements Renderer {
             whiteMaterial.setBoolean("UseMaterialColors", true);
 
             blackMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-            blackMaterial.setColor("Diffuse", ColorRGBA.Gray.mult(0.2f));
+            blackMaterial.setColor("Diffuse", ColorRGBA.DarkGray.mult(0.2f));
             blackMaterial.setBoolean("UseMaterialColors", true);
 
             highlightMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
@@ -135,47 +133,37 @@ public class Render_3D implements Renderer {
         private void setupLighting() {
             viewPort.setBackgroundColor(new ColorRGBA(0.8f, 0.4f, 0.2f, 1.0f));
 
-            // Main directional light (sun)
             DirectionalLight sun = new DirectionalLight();
             sun.setDirection(new Vector3f(-0.5f, -1.5f, -0.5f).normalizeLocal());
             sun.setColor(ColorRGBA.White.mult(1.0f));
             rootNode.addLight(sun);
 
-            // Ambient light for overall scene brightness
             com.jme3.light.AmbientLight ambient = new com.jme3.light.AmbientLight();
             ambient.setColor(new ColorRGBA(0.4f, 0.4f, 0.4f, 1.0f));
             rootNode.addLight(ambient);
 
-            // Fill light for softer shadows
             DirectionalLight fillLight = new DirectionalLight();
             fillLight.setDirection(new Vector3f(1f, -0.8f, 0.8f).normalizeLocal());
             fillLight.setColor(ColorRGBA.White.mult(0.3f));
             rootNode.addLight(fillLight);
 
-            // Back light for rim highlighting
             DirectionalLight backLight = new DirectionalLight();
             backLight.setDirection(new Vector3f(0.5f, -0.5f, -1f).normalizeLocal());
             backLight.setColor(ColorRGBA.White.mult(0.2f));
             rootNode.addLight(backLight);
 
-            // Rim light for piece edges
             DirectionalLight rimLight = new DirectionalLight();
             rimLight.setDirection(new Vector3f(0.0f, -0.5f, 1.0f).normalizeLocal());
             rimLight.setColor(ColorRGBA.White.mult(0.4f));
             rootNode.addLight(rimLight);
 
-            // Ground reflection light
             DirectionalLight groundLight = new DirectionalLight();
             groundLight.setDirection(new Vector3f(0.0f, 1.0f, 0.0f).normalizeLocal());
             groundLight.setColor(new ColorRGBA(0.3f, 0.3f, 0.3f, 1.0f));
             rootNode.addLight(groundLight);
 
-            // Enable PBR if available
             renderManager.setPreferredLightMode(LightMode.SinglePass);
             renderManager.setSinglePassLightBatchSize(3);
-
-            // Enable shadows if supported
-            
         }
 
         private void setupInputHandling() {
@@ -612,13 +600,13 @@ public class Render_3D implements Renderer {
 
                 if (piece > 0) {
                     material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "piece_white.png"));
-                    material.setColor("Ambient", new ColorRGBA(0.8f, 0.8f, 0.8f, 1.0f));
-                    material.setColor("Diffuse", new ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f));
-                    material.setColor("Specular", new ColorRGBA(0.9f, 0.9f, 0.9f, 1.0f));
-
-                    material.setFloat("Shininess", 128f);
+                    // Reduced brightness for white pieces
+                    material.setColor("Ambient", new ColorRGBA(0.3f, 0.3f, 0.3f, 1.0f));
+                    material.setColor("Diffuse", new ColorRGBA(0.7f, 0.7f, 0.7f, 1.0f));
+                    material.setColor("Specular", new ColorRGBA(0.6f, 0.6f, 0.6f, 1.0f));
+                    material.setFloat("Shininess", 64f);
                     material.setBoolean("UseMaterialColors", true);
-                    material.setColor("GlowColor", new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
+                    material.setColor("GlowColor", new ColorRGBA(0.05f, 0.05f, 0.05f, 1.0f));
                 } else {
                     material.setTexture("DiffuseMap", assetManager.loadTexture(texturePath + "piece_black.png"));
                     material.setColor("Ambient", new ColorRGBA(0.02f, 0.02f, 0.02f, 1.0f));
