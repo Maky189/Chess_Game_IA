@@ -45,7 +45,7 @@ public class Render_3D implements Renderer {
     @Override
     public void initialize() {
         if (chessApp != null) {
-            System.out.println("Init");
+            return;
         }
     }
 
@@ -102,6 +102,9 @@ public class Render_3D implements Renderer {
             setupInputHandling();
             boardNode = createChessBoard(game);
             rootNode.attachChild(boardNode);
+
+            // Initialize audio only if not already playing
+            Audio.getInstance(assetManager).initializeIfNeeded();
         }
 
         private void initializeMaterials() {
