@@ -60,6 +60,7 @@ public class Render_3D implements Renderer {
         settings.setFrequency(displayMode.getRefreshRate());
 
         settings.setResolution(displayMode.getWidth(), displayMode.getHeight());
+        
 
         settings.setSamples(4);
         settings.setFrameRate(displayMode.getRefreshRate());
@@ -134,7 +135,7 @@ public class Render_3D implements Renderer {
         }
 
         private void setupLighting() {
-            viewPort.setBackgroundColor(new ColorRGBA(0.8f, 0.4f, 0.2f, 1.0f));
+            viewPort.setBackgroundColor(new ColorRGBA(6f, 9f, 8f, 0.8f));
 
             DirectionalLight sun = new DirectionalLight();
             sun.setDirection(new Vector3f(-0.5f, -1.5f, -0.5f).normalizeLocal());

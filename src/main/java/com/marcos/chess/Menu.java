@@ -19,14 +19,16 @@ public class Menu {
     private final Stage primaryStage;
     private final int windowsWidth;
     private final int windowsHeight;
-    private boolean is3DMode = false;
+    public static boolean is3DMode = false;
     private Renderer currentRenderer;
+    private GameOptions gameOptions = GameOptions.getInstance();
 
     public Menu(Stage primaryStage, int windowsWidth, int windowsHeight) {
         this.primaryStage = primaryStage;
         this.windowsWidth = windowsWidth;
         this.windowsHeight = windowsHeight;
-        this.currentRenderer = new Renderer_2D(windowsWidth, windowsHeight);
+        this.is3DMode = gameOptions.is3DModeEnabled(); // Load saved preference
+        this.currentRenderer = is3DMode ? new Render_3D(windowsWidth, windowsHeight) : new Renderer_2D(windowsWidth, windowsHeight);
     }
 
     public void showMenu() {
@@ -46,17 +48,15 @@ public class Menu {
 
         StackPane optionsButton = createButton("Options", Color.ORANGE, Color.DARKORANGE);
         optionsButton.setOnMouseClicked(e -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Options");
-            alert.setHeaderText(null);
-            alert.setContentText("Options are not available yet.");
-            alert.showAndWait();
+            OptionsMenu optionsMenu = new OptionsMenu(primaryStage, windowsWidth, windowsHeight, this);
+            Scene optionsScene = optionsMenu.createScene();
+            primaryStage.setScene(optionsScene);
+            primaryStage.setFullScreen(true);
         });
 
         StackPane quitButton = createButton("Quit", Color.DARKRED, Color.DARKRED, 100, 50);
         quitButton.setOnMouseClicked(e -> {
             Platform.exit();
-            System.exit(0);
         });
         
         VBox mainButtons = new VBox(20);
@@ -85,7 +85,7 @@ public class Menu {
         primaryStage.show();
     }
 
-    private StackPane createButton(String text, Color defaultColor, Color hoverColor) {
+    public StackPane createButton(String text, Color defaultColor, Color hoverColor) {
 
         Rectangle rectangle = new Rectangle(300, 100); 
         rectangle.setFill(defaultColor);
@@ -121,15 +121,22 @@ public class Menu {
         return button;
     }
 
+    public static boolean is3DModeEnabled() {
+        return GameOptions.getInstance().is3DModeEnabled();
+    }
 
+    public void set3DMode(boolean enabled) {
+        this.is3DMode = enabled;
+        gameOptions.set3DMode(enabled);
+        currentRenderer = enabled ? new Render_3D(windowsWidth, windowsHeight) : new Renderer_2D(windowsWidth, windowsHeight);
+    }
 
     private void startGame(boolean isMultiplayer) {
         if (!isMultiplayer) {
             SaveGameMenu saveGameMenu = new SaveGameMenu(primaryStage, windowsWidth, windowsHeight);
             Scene saveGameScene = saveGameMenu.createScene();
             primaryStage.setScene(saveGameScene);
-        }
-        else {
+        } else {
             MainGame.resetGameInstance(8);
             Game game = MainGame.getGameInstance(8);
             currentRenderer.initialize();

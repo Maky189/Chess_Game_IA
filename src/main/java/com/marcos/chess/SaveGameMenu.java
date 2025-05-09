@@ -170,12 +170,25 @@ public class SaveGameMenu {
                 MainGame.resetGameInstance(8);
                 Game game = MainGame.getGameInstance(8);
                 GameSaver.saveGame(gameName, game, "SinglePlayer");
-                Renderer renderer = new Renderer_2D(windowsWidth, windowsHeight);
-                ((Renderer_2D)renderer).setCurrentProfile(gameName);
+                
+                // Use appropriate renderer based on 3D mode
+                Renderer renderer = Menu.is3DModeEnabled() ? new Render_3D(windowsWidth, windowsHeight) : new Renderer_2D(windowsWidth, windowsHeight);
+                
+                if (renderer instanceof Renderer_2D) {
+                    ((Renderer_2D)renderer).setStage(stage);
+                    ((Renderer_2D)renderer).setCurrentProfile(gameName);
+                }
+                
                 renderer.initialize();
-                Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
-                stage.setScene(gameScene);
-                stage.setFullScreen(true);
+                
+                if (Menu.is3DModeEnabled()) {
+                    stage.hide();
+                    renderer.createGameScene(windowsWidth, windowsHeight, false);
+                } else {
+                    Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
+                    stage.setScene(gameScene);
+                    stage.setFullScreen(true);
+                }
             }
         });
 

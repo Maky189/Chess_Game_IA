@@ -63,7 +63,7 @@ public class MenuMultiplayer {
         table.getColumns().addAll(hostColumn, gameColumn, statusColumn);
         table.setFixedCellSize(50);
 
-        // Create buttons using your style
+        
         StackPane hostButton = createButton("Host Game", Color.BLUE, Color.DARKBLUE);
         StackPane joinButton = createButton("Join Game", Color.GREEN, Color.DARKGREEN);
         StackPane debugButton = createButton("Debug PvP", Color.PURPLE, Color.DARKVIOLET);
@@ -73,7 +73,6 @@ public class MenuMultiplayer {
         buttonBox.getChildren().addAll(hostButton, joinButton, debugButton, backButton);
         buttonBox.setAlignment(Pos.CENTER);
 
-        // Position elements using your layout style
         AnchorPane.setTopAnchor(title, 50.0);
         AnchorPane.setLeftAnchor(title, 50.0);
         AnchorPane.setTopAnchor(table, 150.0);
@@ -85,7 +84,7 @@ public class MenuMultiplayer {
 
         root.getChildren().addAll(title, table, buttonBox);
 
-        // Add button handlers
+        // buttonns 
         backButton.setOnMouseClicked(e -> {
             Menu menu = new Menu(stage, windowsWidth, windowsHeight);
             menu.showMenu();
@@ -106,7 +105,6 @@ public class MenuMultiplayer {
     }
 
     private StackPane createButton(String text, Color defaultColor, Color hoverColor) {
-        // Copy your existing button creation code from Menu.java
         javafx.scene.shape.Rectangle rectangle = new javafx.scene.shape.Rectangle(250, 80);
         rectangle.setFill(defaultColor);
         rectangle.setArcWidth(20);

@@ -80,7 +80,6 @@ public class Audio {
             }
 
             String randomTrack = musicTracks.get(random.nextInt(musicTracks.size()));
-            System.out.println("Attempting to play: " + randomTrack);
 
             currentMusic = new AudioNode(assetManager, randomTrack, DataType.Stream);
             currentMusic.setLooping(false);
@@ -88,7 +87,6 @@ public class Audio {
             currentMusic.setPositional(false);
             currentMusic.play();
 
-            System.out.println("Music started playing");
 
             new Thread(() -> {
                 while (currentMusic != null && currentMusic.getStatus() == Status.Playing) {
