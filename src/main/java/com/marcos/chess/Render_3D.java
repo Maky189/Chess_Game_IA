@@ -339,6 +339,19 @@ public class Render_3D implements Renderer {
             float liftHeight = 1.0f;
             float moveDuration = 0.5f;
 
+            // Check if it's a capture or castling move
+            boolean isCapture = game.getBoard()[toX][toY] != 0 || game.isEnPassantCapture(fromX, fromY, toX, toY);
+            boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromY - toY) == 2;
+
+            // Play appropriate sound
+            if (isCapture) {
+                Audio.getInstance(assetManager).playCaptureSound();
+            } else if (isCastling) {
+                Audio.getInstance(assetManager).playCastleSound();
+            } else {
+                Audio.getInstance(assetManager).playMoveSound(); // Regular move sound
+            }
+
             // Check for en passant capture
             if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
                 // For en passant, we need to remove the pawn that just moved two squares
@@ -354,8 +367,6 @@ public class Render_3D implements Renderer {
             }
 
             // Check for castling move
-            boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromY - toY) == 2;
-
             if (isCastling) {
                 // see the ype of castling
                 boolean isKingside = toY > fromY;

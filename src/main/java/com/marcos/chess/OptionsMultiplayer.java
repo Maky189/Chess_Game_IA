@@ -21,14 +21,12 @@ public class OptionsMultiplayer {
         isHost = true;
         try {
             serverSocket = new ServerSocket(PORT);
-            // Create new multiplayer game instance
             Multiplayer newGame = new Multiplayer(
                 System.getProperty("user.name"), 
                 gameName,
                 "Waiting for player"
             );
             activeGames.add(newGame);
-            // Listen for connections
             listenForPlayer();
         } catch (Exception e) {
             e.printStackTrace();
