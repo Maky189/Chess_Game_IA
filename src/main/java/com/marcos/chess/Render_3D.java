@@ -356,14 +356,6 @@ public class Render_3D implements Renderer {
             float liftHeight = 1.0f;
             float moveDuration = 0.5f;
 
-            // Check for pawn promotion
-            if (Math.abs(movingPiece) == 1) {
-                if ((movingPiece == 1 && toX == 0) || (movingPiece == -1 && toX == 7)) {
-                    showPromotionUI(toX, toY, Integer.signum(movingPiece));
-                    return;
-                }
-            }
-
             // Check if it's a capture or castling move
             boolean isCapture = game.getBoard()[toX][toY] != 0 || game.isEnPassantCapture(fromX, fromY, toX, toY);
             boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromY - toY) == 2;
@@ -376,9 +368,8 @@ public class Render_3D implements Renderer {
                 Audio.getInstance(assetManager).playMoveSound();
             }
 
-            // Check for en passant capture
+            // Handle captures
             if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
-                // For en passant, we need to remove the pawn that just moved two squares
                 Node capturedPawn = findPieceNodeAt(game.getLastMoveToX(), game.getLastMoveToY());
                 if (capturedPawn != null) {
                     boardNode.detachChild(capturedPawn);
@@ -390,49 +381,60 @@ public class Render_3D implements Renderer {
                 }
             }
 
-            // Check for castling move
+            // Handle castling
             if (isCastling) {
-                // see the ype of castling
                 boolean isKingside = toY > fromY;
                 int rookFromCol = isKingside ? 7 : 0;
                 int rookToCol = isKingside ? 5 : 3;
 
-                // Find rook
                 Node rookNode = findPieceNodeAt(fromX, rookFromCol);
                 if (rookNode != null) {
-                    AnimationControl rookAnim = new AnimationControl(rookNode, new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)), new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)), liftHeight, moveDuration, null);
+                    AnimationControl rookAnim = new AnimationControl(rookNode, 
+                        new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)), 
+                        new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)), 
+                        liftHeight, moveDuration, null);
                     rookNode.addControl(rookAnim);
                 }
             }
 
-            AnimationControl kingAnim = new AnimationControl(pieceNode, new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)), new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)), liftHeight, moveDuration, () -> {
-                        game.getBoard()[toX][toY] = movingPiece;
-                        game.getBoard()[fromX][fromY] = 0;
+            AnimationControl kingAnim = new AnimationControl(pieceNode, 
+                new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)), 
+                new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)), liftHeight, moveDuration, () -> {
+                    game.getBoard()[toX][toY] = movingPiece;
+                    game.getBoard()[fromX][fromY] = 0;
 
-                        if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
-                            game.performEnPassantCapture(toX, toY);
-                        }
+                    if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
+                        game.performEnPassantCapture(toX, toY);
+                    }
 
-                        // Update last move AFTER updating the board but BEFORE castling
-                        game.updateLastMove(fromX, fromY, toX, toY);
+                    game.updateLastMove(fromX, fromY, toX, toY);
 
-                        if (isCastling) {
-                            if (toY > fromY) {
-                                game.performKingsideCastle(fromX);
-                            } else {
-                                game.performQueensideCastle(fromX);
-                            }
-                        }
-
-                        if (Math.abs(movingPiece) == 1 && (toX == 0 || toX == 7)) {
-                            showPromotionUI(toX, toY, Integer.signum(movingPiece));
+                    if (isCastling) {
+                        if (toY > fromY) {
+                            game.performKingsideCastle(fromX);
                         } else {
-                            changePlayer();
-                            if (!isMultiplayer && game.getCurrentPlayer() == -1) {
-                                handleAIMove();
-                            }
+                            game.performQueensideCastle(fromX);
                         }
-                    });
+                    }
+
+                    // Promotion pawn to queen
+                    if (Math.abs(movingPiece) == 1 && (toX == 0 || toX == 7)) {
+                        int queenValue = 5 * Integer.signum(movingPiece);
+                        game.getBoard()[toX][toY] = queenValue;
+                        boardNode.detachChild(pieceNode);
+                        Node newQueenNode = loadPieceModel(queenValue);
+                        if (newQueenNode != null) {
+                            newQueenNode.setLocalScale(modelScale);
+                            newQueenNode.setLocalTranslation(toY - 3.5f, 0.2f, toX - 3.5f);
+                            boardNode.attachChild(newQueenNode);
+                        }
+                    }
+
+                    changePlayer();
+                    if (!isMultiplayer && game.getCurrentPlayer() == -1) {
+                        handleAIMove();
+                    }
+                });
 
             pieceNode.addControl(kingAnim);
         }
@@ -688,121 +690,10 @@ public class Render_3D implements Renderer {
             return pieceNode;
         }
 
-        private void showPromotionUI(int x, int y, int color) {
-            isPromotionPending = true;
-            promotionX = x;
-            promotionY = y;
-            promotionColor = color;
-
-            Node promotionUI = new Node("promotionUI");
-
-            Box panel = new Box(1.0f, 0.5f, 0.01f);
-            Geometry panelGeo = new Geometry("panel", panel);
-            Material panelMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            panelMat.setColor("Color", new ColorRGBA(0.9f, 0.9f, 0.9f, 0.95f));
-            panelGeo.setMaterial(panelMat);
-            promotionUI.attachChild(panelGeo);
-
-            int[] pieces = {5, 2, 4, 3};
-            String[] pieceNames = {"Queen", "Rook", "Bishop", "Knight"};
-            float spacing = 0.45f;
-            float startX = -0.675f;
-            float pieceScale = 0.2f;
-
-            for (int i = 0; i < pieces.length; i++) {
-                Node optionNode = new Node("option_" + i);
-                Box clickBox = new Box(0.2f, 0.4f, 0.01f);
-                Geometry clickGeo = new Geometry("click_" + i, clickBox);
-                Material clickMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-                clickMat.setColor("Color", new ColorRGBA(0, 0, 0, 0));
-                clickGeo.setMaterial(clickMat);
-                optionNode.attachChild(clickGeo);
-                
-                // Load piece model
-                Node pieceModel = loadPieceModel(pieces[i] * color);
-                if (pieceModel != null) {
-                    pieceModel.setLocalScale(pieceScale);
-                    pieceModel.setLocalTranslation(0, 0.1f, 0.02f);
-                    optionNode.attachChild(pieceModel);
-
-                    //Text in the modal
-                    BitmapText pieceText = new BitmapText(guiFont);
-                    pieceText.setText(pieceNames[i]);
-                    pieceText.setSize(0.07f);
-                    pieceText.setColor(ColorRGBA.Black);
-                    pieceText.setLocalTranslation(
-                        -pieceText.getLineWidth() / 2,
-                        -0.1f,
-                        0.02f
-                    );
-                    optionNode.attachChild(pieceText);
-                }
-
-                optionNode.setLocalTranslation(startX + (i * spacing), 0, 0);
-                optionNode.setUserData("promotionPiece", pieces[i] * color);
-                promotionUI.attachChild(optionNode);
-            }
-
-
-            Vector3f camDir = cam.getDirection().normalize();
-            Vector3f camLeft = cam.getLeft().normalize();
-            Vector3f camUp = camDir.cross(camLeft);
-            
-            promotionUI.setLocalTranslation(
-                cam.getLocation().add(camDir.mult(2.5f))
-            );
-            promotionUI.lookAt(cam.getLocation(), camUp);
-
-            rootNode.attachChild(promotionUI);
-
-            inputManager.addListener((ActionListener) (name, pressed, tpf) -> {
-                if (name.equals("Select") && !pressed && isPromotionPending) {
-                    CollisionResults results = new CollisionResults();
-                    Vector2f click2d = inputManager.getCursorPosition();
-                    Vector3f click3d = cam.getWorldCoordinates(click2d, 0f);
-                    Vector3f dir = cam.getWorldCoordinates(click2d, 1f).subtractLocal(click3d).normalizeLocal();
-                    Ray ray = new Ray(click3d, dir);
-                    
-                    promotionUI.collideWith(ray, results);
-                    if (results.size() > 0) {
-                        Node clickedNode = results.getClosestCollision().getGeometry().getParent();
-                        while (clickedNode != null && clickedNode.getUserData("promotionPiece") == null) {
-                            clickedNode = clickedNode.getParent();
-                        }
-                        
-                        if (clickedNode != null) {
-                            Integer selectedPiece = clickedNode.getUserData("promotionPiece");
-                            if (selectedPiece != null) {
-                                completePawnPromotion(selectedPiece);
-                                rootNode.detachChild(promotionUI);
-                                isPromotionPending = false;
-                            }
-                        }
-                    }
-                }
-            }, "Select");
-        }
-
-        private void completePawnPromotion(int selectedPiece) {
-            game.getBoard()[promotionX][promotionY] = selectedPiece;
-            
-            // Update the 3D model
-            Node pieceNode = findPieceNodeAt(promotionX, promotionY);
-            if (pieceNode != null) {
-                rootNode.detachChild(pieceNode);
-            }
-            
-            Node newPieceNode = loadPieceModel(selectedPiece);
-            if (newPieceNode != null) {
-                newPieceNode.setLocalScale(modelScale);
-                newPieceNode.setLocalTranslation(promotionY - 3.5f, 0.2f, promotionX - 3.5f);
-                rootNode.attachChild(newPieceNode);
-            }
-
-            changePlayer();
-            if (!isMultiplayer && game.getCurrentPlayer() == -1) {
-                handleAIMove();
-            }
+        private void promotionMenu(int x, int y, int color) {
+            //Could not find a way to make the UI in JmonkeyEngine yet. But I will implement it later.
+            //Manual promotion will come up one day.
+            return;
         }
     }
 
