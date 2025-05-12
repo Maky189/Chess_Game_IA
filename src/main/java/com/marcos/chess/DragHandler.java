@@ -9,6 +9,16 @@ import javafx.util.Duration;
 import java.util.List;
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 public class DragHandler {
     private final Board board;
@@ -152,7 +162,7 @@ public class DragHandler {
             validMove = possibleMoves.stream().anyMatch(move -> move[0] == pos[0] && move[1] == pos[1]);
 
             if (validMove) {
-                // Handle special moves first
+                // special moves first
                 int startY = fromY;
                 boolean isCastling = game.isCastlingMove(fromX, fromY, pos[0], pos[1]);
                 boolean isEnPassant = game.isEnPassantCapture(fromX, fromY, pos[0], pos[1]);
@@ -161,7 +171,7 @@ public class DragHandler {
                 game.getBoard()[pos[0]][pos[1]] = selectedPiece;
                 game.getBoard()[fromX][fromY] = 0;
 
-                // Handle castling
+                // castling
                 if (Math.abs(selectedPiece) == 6 && Math.abs(pos[1] - startY) == 2) {
                     if (pos[1] > startY) {
                         game.performKingsideCastle(pos[0]);
@@ -170,11 +180,19 @@ public class DragHandler {
                         game.performQueensideCastle(pos[0]);
                     }
                 }
-                // Handle en passant
+                // en passant
                 if (isEnPassant) {
                     int capturedPawnRow = fromX;
                     int capturedPawnCol = pos[1];
                     game.getBoard()[capturedPawnRow][capturedPawnCol] = 0;
+                }
+
+                // pawn promotion
+                if (Math.abs(selectedPiece) == 1) {
+                    if ((selectedPiece == 1 && pos[0] == 0) || (selectedPiece == -1 && pos[0] == 7)) {
+                        promotionModal(pos[0], pos[1], Integer.signum(selectedPiece));
+                        return;
+                    }
                 }
 
                 // Update game state
@@ -258,5 +276,55 @@ public class DragHandler {
 
     public void cleanup() {
         cleanupAnimation();
+    }
+
+    private void promotionModal(int toX, int toY, int color) {
+        Stage menu = new Stage();
+        menu.initModality(Modality.APPLICATION_MODAL);
+        menu.initOwner((Stage) canvas.getScene().getWindow());
+        menu.setTitle("Promote Pawn");
+
+        HBox piecesBox = new HBox(20);
+        piecesBox.setAlignment(Pos.CENTER);
+        piecesBox.setPadding(new Insets(20));
+        piecesBox.setStyle("-fx-background-color: white;");
+
+        // Options
+        int[] promotionPieces = {2, 3, 4, 5};
+        String[] pieceNames = {"Rook", "Knight", "Bishop", "Queen"};
+
+        for (int i = 0; i < promotionPieces.length; i++) {
+            final int piece = promotionPieces[i] * color;
+            VBox pieceBox = new VBox(10);
+            pieceBox.setAlignment(Pos.CENTER);
+
+            ImageView pieceImage = new ImageView(board.obtainImage(piece));
+            pieceImage.setFitWidth(board.getSquareSize());
+            pieceImage.setFitHeight(board.getSquareSize());
+
+            Text pieceName = new Text(pieceNames[i]);
+            pieceName.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+
+            pieceBox.getChildren().addAll(pieceImage, pieceName);
+            pieceBox.setOnMouseClicked(e -> {
+                game.getBoard()[toX][toY] = piece;
+                redraw();
+                menu.close();
+                changePlayer();
+                if (!isMultiplayer) {
+                    handleAIMove();
+                }
+            });
+
+            // effect
+            pieceBox.setOnMouseEntered(e -> pieceBox.setStyle("-fx-background-color: lightgray; -fx-cursor: hand;"));
+            pieceBox.setOnMouseExited(e -> pieceBox.setStyle("-fx-background-color: transparent;"));
+
+            piecesBox.getChildren().add(pieceBox);
+        }
+
+        Scene dialogScene = new Scene(piecesBox);
+        menu.setScene(dialogScene);
+        menu.show();
     }
 }

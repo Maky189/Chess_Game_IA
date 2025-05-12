@@ -7,6 +7,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -44,12 +45,17 @@ public class OptionsMenu {
         enable3DMode.setSelected(GameOptions.getInstance().is3DModeEnabled());
         enable3DMode.setOnAction(e -> menu.set3DMode(enable3DMode.isSelected()));
 
+        StackPane testEnvironmentButton = createButton("3D Test Environment", Color.PURPLE, Color.DARKVIOLET);
+        testEnvironmentButton.setOnMouseClicked(e -> {
+            Test3D.launch();
+        });
+
         StackPane backButton = menu.createButton("Back", Color.GRAY, Color.DARKGRAY);
         backButton.setOnMouseClicked(e -> menu.showMenu());
 
         VBox optionsBox = new VBox(20);
         optionsBox.setAlignment(Pos.CENTER);
-        optionsBox.getChildren().addAll(enable3DMode, backButton);
+        optionsBox.getChildren().addAll(enable3DMode, testEnvironmentButton, backButton);
 
         AnchorPane.setTopAnchor(title, 50.0);
         AnchorPane.setLeftAnchor(title, 50.0);
@@ -60,5 +66,22 @@ public class OptionsMenu {
         root.getChildren().addAll(title, optionsBox);
 
         return new Scene(root, windowsWidth, windowsHeight);
+    }
+
+    private StackPane createButton(String text, Color defaultColor, Color hoverColor) {
+        Rectangle rectangle = new Rectangle(300, 80);
+        rectangle.setFill(defaultColor);
+        rectangle.setArcWidth(20);
+        rectangle.setArcHeight(20);
+
+        Text buttonText = new Text(text);
+        buttonText.setFill(Color.WHITE);
+        buttonText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+
+        StackPane button = new StackPane(rectangle, buttonText);
+        button.setOnMouseEntered(e -> rectangle.setFill(hoverColor));
+        button.setOnMouseExited(e -> rectangle.setFill(defaultColor));
+
+        return button;
     }
 }

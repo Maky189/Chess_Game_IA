@@ -1,6 +1,7 @@
 package com.marcos.chess;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.TextureKey;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -16,6 +17,10 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
+import com.jme3.texture.Texture;
+import com.jme3.texture.Texture.WrapMode;
+import com.jme3.texture.plugins.HDRLoader;
+import com.jme3.util.SkyFactory;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.material.TechniqueDef.LightMode;
 import com.jme3.input.MouseInput;
@@ -104,7 +109,6 @@ public class Render_3D implements Renderer {
             boardNode = createChessBoard(game);
             rootNode.attachChild(boardNode);
 
-            // Initialize audio only if not already playing
             Audio.getInstance(assetManager).initializeIfNeeded();
         }
 
@@ -135,7 +139,13 @@ public class Render_3D implements Renderer {
         }
 
         private void setupLighting() {
-            viewPort.setBackgroundColor(new ColorRGBA(6f, 9f, 8f, 0.8f));
+            TextureKey key = new TextureKey("assets/board/hdri3.hdr", true);
+            key.setGenerateMips(true);
+            Texture envMap = assetManager.loadTexture(key);
+            envMap.setWrap(WrapMode.EdgeClamp);
+
+            Spatial sky = SkyFactory.createSky(assetManager, envMap, SkyFactory.EnvMapType.EquirectMap);
+            rootNode.attachChild(sky);
 
             DirectionalLight sun = new DirectionalLight();
             sun.setDirection(new Vector3f(-0.5f, -1.5f, -0.5f).normalizeLocal());
@@ -344,13 +354,12 @@ public class Render_3D implements Renderer {
             boolean isCapture = game.getBoard()[toX][toY] != 0 || game.isEnPassantCapture(fromX, fromY, toX, toY);
             boolean isCastling = Math.abs(movingPiece) == 6 && Math.abs(fromY - toY) == 2;
 
-            // Play appropriate sound
             if (isCapture) {
                 Audio.getInstance(assetManager).playCaptureSound();
             } else if (isCastling) {
                 Audio.getInstance(assetManager).playCastleSound();
             } else {
-                Audio.getInstance(assetManager).playMoveSound(); // Regular move sound
+                Audio.getInstance(assetManager).playMoveSound();
             }
 
             // Check for en passant capture
