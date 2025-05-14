@@ -42,7 +42,7 @@ public class IA {
             // If no positive moves found, evaluate position-only moves
             if (scoredMoves.isEmpty()) {
                 for (Move move : possibleMoves) {
-                    int positionScore = evaluatePosition(game, move);
+                    int positionScore = analizePosition(game, move);
                     if (positionScore > 0) {
                         scoredMoves.add(new ScoredMove(move, positionScore));
                     }
@@ -66,14 +66,14 @@ public class IA {
                     }
                 }
                 
-                // Choose  the best move randomly from the best moves
+                // Choose the best move randomly from the best moves
                 return bestMoves.get(random.nextInt(bestMoves.size()));
             }
         }
         return null;
     }
 
-    private int evaluatePosition(Game game, Move move) {
+    private int analizePosition(Game game, Move move) {
         int[][] board = game.getBoard();
         int piece = board[move.fromX][move.fromY];
         int score = 0;
@@ -86,9 +86,9 @@ public class IA {
         }
         
         // make the rooks smarter
-        // Rooks are more valuable when they control open files
+        // Rooks are more valuable when they control open lines
         if (Math.abs(piece) == 2) {  // Rook
-            score += evaluateRookPosition(board, move, piece);
+            score += verifyRookPosition(board, move, piece);
         }
         
         // Center control bonus 
@@ -117,12 +117,12 @@ public class IA {
         return score;
     }
 
-    private int evaluateRookPosition(int[][] board, Move move, int piece) {
+    private int verifyRookPosition(int[][] board, Move move, int piece) {
         int score = 0;
-        boolean isEndgame = isEndgamePhase(board);
+        boolean isEndgame = isEndgame(board);
         
         // Count empty squares in the rook line of attack
-        int emptySquaresInFile = countEmptySquaresInFile(board, move.toY);
+        int emptySquaresInFile = countEmptySquaresInLine(board, move.toY);
         
         // Count empty squares
         int emptySquaresInRank = countEmptySquaresInRank(board, move.toX);
@@ -132,7 +132,7 @@ public class IA {
             score += 25;
             
             // Extra bonus if it's the only rook controlling this file
-            if (!isFileControlledByEnemyRook(board, move.toY, piece)) {
+            if (!isLineControlledByEnemyRook(board, move.toY, piece)) {
                 score += 15;
             }
         }
@@ -160,7 +160,7 @@ public class IA {
         return score;
     }
 
-    private boolean isEndgamePhase(int[][] board) {
+    private boolean isEndgame(int[][] board) {
         int pieceCount = 0;
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
@@ -174,7 +174,7 @@ public class IA {
         return pieceCount <= 10; 
     }
 
-    private int countEmptySquaresInFile(int[][] board, int file) {
+    private int countEmptySquaresInLine(int[][] board, int file) {
         int count = 0;
         for (int i = 0; i < board.length; i++) {
             if (board[i][file] == 0) {
@@ -194,7 +194,7 @@ public class IA {
         return count;
     }
 
-    private boolean isFileControlledByEnemyRook(int[][] board, int file, int piece) {
+    private boolean isLineControlledByEnemyRook(int[][] board, int file, int piece) {
         int enemyRook = (piece > 0) ? -2 : 2;
         for (int i = 0; i < board.length; i++) {
             if (board[i][file] == enemyRook) {
@@ -222,26 +222,46 @@ public class IA {
         int piece = board[move.fromX][move.fromY];
         int pieceValue = getPieceValue(Math.abs(piece));
         
-        // Evaluate capture value 
+        // Create a temporary board to simulate the move
+        int[][] tempBoard = new int[board.length][board.length];
+        for (int i = 0; i < board.length; i++) {
+            System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+        }
+        
+        // Make the move on it
+        tempBoard[move.toX][move.toY] = piece;
+        tempBoard[move.fromX][move.fromY] = 0;
+        
+        // Check if any piece would be threatened after this move
+        boolean pieceWouldBeThreatened = false;
+        if (game.getCurrentPlayer() == 1) {
+            // Find all the pieces that would be threatened
+            for (int i = 0; i < tempBoard.length; i++) {
+                for (int j = 0; j < tempBoard[i].length; j++) {
+                    if (tempBoard[i][j] != 0 && Integer.signum(tempBoard[i][j]) == 1) {
+                        if (isSquareUnderAttack(tempBoard, i, j, -1)) {
+                            // If the threatened piece is more valuable than what we might capture
+                            if (getPieceValue(Math.abs(tempBoard[i][j])) > pieceValue) {
+                                pieceWouldBeThreatened = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (pieceWouldBeThreatened) break;
+            }
+        }
+        
+        // Analizing capture value
         int capturedPiece = board[move.toX][move.toY];
         if (capturedPiece != 0) {
             int capturedValue = getPieceValue(Math.abs(capturedPiece));
             
-            // Create a temporary board to simulate the move
-            int[][] tempBoard = new int[board.length][board.length];
-            for (int i = 0; i < board.length; i++) {
-                System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
-            }
-            
-            // Make the move
-            tempBoard[move.toX][move.toY] = piece;
-            tempBoard[move.fromX][move.fromY] = 0;
-            
-            // Check if his piece could be captured after making this move
+            // Check if the piece could be recaptured
             boolean couldBeRecaptured = isSquareUnderAttack(tempBoard, move.toX, move.toY, -Integer.signum(piece));
             
-            if (couldBeRecaptured) {
-                // If the piece is less valuable than the captured piece, make the trade
+            if (couldBeRecaptured || pieceWouldBeThreatened) {
+                // If the piece is less valuable than the captured piece,then make the trade
                 if (capturedValue > pieceValue) {
                     score += (capturedValue - pieceValue) * 100;
                 } else {
@@ -249,13 +269,31 @@ public class IA {
                     return -1;
                 }
             } else {
-                // Safe then full value
+                // Safe capture, then full value
                 score += capturedValue * 100;
             }
+        } else {
+            if (pieceWouldBeThreatened) {
+                // Penalized for moving to a position that would leave pieces threatened
+                return -1;
+            }
+            
+            // Check if the destination square is threatened
+            boolean isSquareThreatened = isSquareUnderAttack(board, move.toX, move.toY, -Integer.signum(piece));
+            
+            if (isSquareThreatened) {
+                // Is worng moving into a threatened square
+                if (Math.abs(piece) == 6) {
+                    return -1;
+                }
+                score -= pieceValue * 50;
+            }
+            
+            // Add position score only if the move is somewhat safe
+            if (!isSquareThreatened && !pieceWouldBeThreatened || score > 0) {
+                score += analizePosition(game, move);
+            }
         }
-        
-        // Add position score (secondary priority)
-        score += evaluatePosition(game, move);
         
         return score;
     }
