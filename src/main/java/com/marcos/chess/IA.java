@@ -73,46 +73,213 @@ public class IA {
         return null;
     }
 
-    private int evaluateMove(Game game, Move move) {
-        int[][] board = game.getBoard();
-        int score = 0;
-        
-        // Evaluate capture value
-        int capturedPiece = board[move.toX][move.toY];
-        if (capturedPiece != 0) {
-            score += getPieceValue(Math.abs(capturedPiece)) * 100;
-        }
-        
-        // Add position score
-        score += evaluatePosition(game, move);
-        
-        return score;
-    }
-
     private int evaluatePosition(Game game, Move move) {
         int[][] board = game.getBoard();
         int piece = board[move.fromX][move.fromY];
         int score = 0;
         
-        // Position score for the target square
         score += POSITION_SCORES[move.toX][move.toY] * 10;
         
-        // Development bonus (moving pieces from their starting positions)
+        // Development bonus (moving pieces from starting positions)
         if (isStartingPosition(move.fromX, move.fromY, piece)) {
             score += 15;
         }
         
-        // Center control bonus
-        if ((move.toX >= 2 && move.toX <= 5) && (move.toY >= 2 && move.toY <= 5)) {
-            score += 20;
+        // make the rooks smarter
+        // Rooks are more valuable when they control open files
+        if (Math.abs(piece) == 2) {  // Rook
+            score += evaluateRookPosition(board, move, piece);
         }
         
-        // Penalize moving to already controlled squares
+        // Center control bonus 
+        if ((move.toX >= 2 && move.toX <= 5) && (move.toY >= 2 && move.toY <= 5)) {
+            score += 15;
+        }
+        
+        // Pawn advancement increases as pawn moves forward
+        if (Math.abs(piece) == 1) {
+            int promotionDirection = (piece > 0) ? -1 : 1;
+            int rankProgress = (piece > 0) ? (6 - move.toX) : (move.toX - 1);
+            // bonus: more points as pawn advances
+            score += rankProgress * 5;
+            // Extra if pass the middle of the board
+            if ((piece > 0 && move.toX < 3) || (piece < 0 && move.toX > 4)) {
+                score += 20;
+            }
+        }
+        
+        // Avoid moving into squares controlled by the opponent
+        // This is a simple heuristic to avoid moving into squares that are controlled by the opponent
         if (isSquareControlled(board, move.toX, move.toY, game.getCurrentPlayer())) {
-            score -= 10;
+            score -= 5;
         }
         
         return score;
+    }
+
+    private int evaluateRookPosition(int[][] board, Move move, int piece) {
+        int score = 0;
+        boolean isEndgame = isEndgamePhase(board);
+        
+        // Count empty squares in the rook line of attack
+        int emptySquaresInFile = countEmptySquaresInFile(board, move.toY);
+        
+        // Count empty squares
+        int emptySquaresInRank = countEmptySquaresInRank(board, move.toX);
+        
+        // Bonus for controlling open lines
+        if (emptySquaresInFile >= 5) {
+            score += 25;
+            
+            // Extra bonus if it's the only rook controlling this file
+            if (!isFileControlledByEnemyRook(board, move.toY, piece)) {
+                score += 15;
+            }
+        }
+        
+        // Endgame
+        if (isEndgame) {
+            // Bonus for being on the 7th rank
+            int seventhRank = (piece > 0) ? 1 : 6;
+            if (move.toX == seventhRank) {
+                score += 30;
+            }
+            
+            // Bonus for having many squares to move to
+            int mobilityScore = (emptySquaresInFile + emptySquaresInRank) * 3;
+            score += mobilityScore;
+            
+            // Bonus for being closer to enemy king in endgame
+            int[] enemyKingPos = findEnemyKing(board, piece);
+            if (enemyKingPos != null) {
+                int distance = Math.abs(move.toX - enemyKingPos[0]) + Math.abs(move.toY - enemyKingPos[1]);
+                score += (14 - distance) * 2;
+            }
+        }
+        
+        return score;
+    }
+
+    private boolean isEndgamePhase(int[][] board) {
+        int pieceCount = 0;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                 // Count non-king pieces
+                if (board[i][j] != 0 && Math.abs(board[i][j]) != 6) { 
+                    pieceCount++;
+                }
+            }
+        }
+         // Consider it endgame if 10 or fewer pieces remain
+        return pieceCount <= 10; 
+    }
+
+    private int countEmptySquaresInFile(int[][] board, int file) {
+        int count = 0;
+        for (int i = 0; i < board.length; i++) {
+            if (board[i][file] == 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countEmptySquaresInRank(int[][] board, int rank) {
+        int count = 0;
+        for (int j = 0; j < board[rank].length; j++) {
+            if (board[rank][j] == 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean isFileControlledByEnemyRook(int[][] board, int file, int piece) {
+        int enemyRook = (piece > 0) ? -2 : 2;
+        for (int i = 0; i < board.length; i++) {
+            if (board[i][file] == enemyRook) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int[] findEnemyKing(int[][] board, int piece) {
+        int enemyKing = (piece > 0) ? -6 : 6;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] == enemyKing) {
+                    return new int[]{i, j};
+                }
+            }
+        }
+        return null;
+    }
+
+    private int evaluateMove(Game game, Move move) {
+        int[][] board = game.getBoard();
+        int score = 0;
+        int piece = board[move.fromX][move.fromY];
+        int pieceValue = getPieceValue(Math.abs(piece));
+        
+        // Evaluate capture value 
+        int capturedPiece = board[move.toX][move.toY];
+        if (capturedPiece != 0) {
+            int capturedValue = getPieceValue(Math.abs(capturedPiece));
+            
+            // Create a temporary board to simulate the move
+            int[][] tempBoard = new int[board.length][board.length];
+            for (int i = 0; i < board.length; i++) {
+                System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+            }
+            
+            // Make the move
+            tempBoard[move.toX][move.toY] = piece;
+            tempBoard[move.fromX][move.fromY] = 0;
+            
+            // Check if his piece could be captured after making this move
+            boolean couldBeRecaptured = isSquareUnderAttack(tempBoard, move.toX, move.toY, -Integer.signum(piece));
+            
+            if (couldBeRecaptured) {
+                // If the piece is less valuable than the captured piece, make the trade
+                if (capturedValue > pieceValue) {
+                    score += (capturedValue - pieceValue) * 100;
+                } else {
+                    // Avoid
+                    return -1;
+                }
+            } else {
+                // Safe then full value
+                score += capturedValue * 100;
+            }
+        }
+        
+        // Add position score (secondary priority)
+        score += evaluatePosition(game, move);
+        
+        return score;
+    }
+
+    private boolean isSquareUnderAttack(int[][] board, int x, int y, int attackerSign) {
+        // Check all opponent pieces that could capture this square
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == attackerSign) {
+                    // Create a temporary game state to calculate moves
+                    Game tempGame = new Game(8);
+                    tempGame.setBoard(board);
+                    List<int[]> attackerMoves = tempGame.calculatePossibleMoves(i, j);
+                    
+                    // Check if any move can capture our piece
+                    for (int[] move : attackerMoves) {
+                        if (move[0] == x && move[1] == y) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private boolean isStartingPosition(int x, int y, int piece) {

@@ -228,9 +228,7 @@ public class Game {
         int piece = board[pieceX][pieceY];
         int kingValue = (piece > 0) ? 6 : -6;
 
-        //Test the move
-        //This is not optimal but is the only possible fix I've tought
-        //Remember to Fix later
+        // Create a temporary board
         int[][] tempBoard = new int[board.length][board.length];
         for (int i = 0; i < board.length; i++) {
             System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
@@ -240,12 +238,14 @@ public class Game {
         tempBoard[newX][newY] = tempBoard[pieceX][pieceY];
         tempBoard[pieceX][pieceY] = 0;
 
+        // Find king position
         int kingX, kingY;
         if (Math.abs(piece) == 6) {
             kingX = newX;
             kingY = newY;
         } else {
             int[] kingPos = findKingPosition(tempBoard, kingValue);
+            // if the king is not found, it means check
             if (kingPos == null) return true;
             kingX = kingPos[0];
             kingY = kingPos[1];
@@ -253,18 +253,11 @@ public class Game {
 
         int opponentSign = (piece > 0) ? -1 : 1;
 
-
-        //Check all diretion at a time
-        if (isDiagonallyThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
-        if (isThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
-        if (isKnightThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
-        if (isPawnThreatened(tempBoard, kingX, kingY, opponentSign)) return true;
-
-        return false;
-
-        //Remember if I get issues later, probably is due to this section that is a mess
-        // I have to fix it later
-        //Remember
+        // Check all threats
+        return isDiagonallyThreatened(tempBoard, kingX, kingY, opponentSign) ||
+               isThreatened(tempBoard, kingX, kingY, opponentSign) ||
+               isKnightThreatened(tempBoard, kingX, kingY, opponentSign) ||
+               isPawnThreatened(tempBoard, kingX, kingY, opponentSign);
     }
 
     private boolean isDiagonallyThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
@@ -325,14 +318,20 @@ public class Game {
     }
 
     private boolean isPawnThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
-        int pawnDirection = opponentSign > 0 ? 1 : -1;
-        int[] pawnColumns = {-1, 1};
+        // Check the two diagonal squares where enemy pawns could attack from
+        int pawnDirection = opponentSign > 0 ? 1 : -1;  // Direction pawns move
+        int[] pawnColumns = {-1, 1};  // Left and right diagonal
 
-        for (int i : pawnColumns) {
-            int x = kingX - pawnDirection;
-            int y = kingY + i;
-            if (x >= 0 && x < tempBoard.length && y >= 0 && y < tempBoard.length) {
-                if (tempBoard[x][y] != 0 && Integer.signum(tempBoard[x][y]) == opponentSign && Math.abs(tempBoard[x][y]) == 1) {
+        for (int colOffset : pawnColumns) {
+            int x = kingX + pawnDirection;  // One row in the direction pawns come from
+            int y = kingY + colOffset;      // Left or right diagonal
+            
+            if (isInBounds(x, y)) {
+                int piece = tempBoard[x][y];
+                // Check if there's an enemy pawn in this position
+                if (piece != 0 && 
+                    Integer.signum(piece) == opponentSign && 
+                    Math.abs(piece) == 1) {  // 1 represents pawn
                     return true;
                 }
             }
@@ -499,14 +498,33 @@ public class Game {
     private void calculateKingMoves(int x, int y, int piece, List<int[]> moves) {
         // Regular king moves
         int[][] possibilities = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+        int opponentSign = Integer.signum(piece) * -1;
 
         for (int[] possibility : possibilities) {
             int newX = x + possibility[0];
             int newY = y + possibility[1];
 
-            // Validate if is in bounds and not opponent in square
-            if (isInBounds(newX, newY) && (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece))) {
-                moves.add(new int[]{newX, newY});
+            if (isInBounds(newX, newY)) {
+                // Check if square is empty or has opponent's piece
+                if (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
+                    // Create a temporary board to test the move
+                    int[][] tempBoard = new int[board.length][board.length];
+                    for (int i = 0; i < board.length; i++) {
+                        System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+                    }
+                    
+                    // Try the move on the temporary board
+                    tempBoard[newX][newY] = piece;
+                    tempBoard[x][y] = 0;
+                    
+                    // Only add the move if it doesn't put/leave the king in check
+                    if (!isDiagonallyThreatened(tempBoard, newX, newY, opponentSign) &&
+                        !isThreatened(tempBoard, newX, newY, opponentSign) &&
+                        !isKnightThreatened(tempBoard, newX, newY, opponentSign) &&
+                        !isPawnThreatened(tempBoard, newX, newY, opponentSign)) {
+                        moves.add(new int[]{newX, newY});
+                    }
+                }
             }
         }
 
