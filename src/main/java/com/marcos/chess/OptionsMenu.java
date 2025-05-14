@@ -28,7 +28,7 @@ public class OptionsMenu {
 
     public Scene createScene() {
         AnchorPane root = new AnchorPane();
-        root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
+        root.setStyle("-fx-background-image: url('/assets/board/menu.png'); -fx-background-size: cover;");
 
         Text title = new Text("Options");
         title.setFill(Color.WHITE);

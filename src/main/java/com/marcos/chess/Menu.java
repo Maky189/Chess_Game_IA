@@ -74,7 +74,7 @@ public class Menu {
         AnchorPane.setTopAnchor(quitButton, 20.0);
         AnchorPane.setLeftAnchor(quitButton, 20.0);
         
-        root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
+        root.setStyle("-fx-background-image: url('/assets/board/menu.png'); -fx-background-size: cover;");
 
         Scene scene = new Scene(root, windowsWidth, windowsHeight);
 

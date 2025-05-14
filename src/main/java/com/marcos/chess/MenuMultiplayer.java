@@ -27,7 +27,7 @@ public class MenuMultiplayer {
 
     public Scene createScene() {
         AnchorPane root = new AnchorPane();
-        root.setStyle("-fx-background-image: url('/assets/board/cover.png'); -fx-background-size: cover;");
+        root.setStyle("-fx-background-image: url('/assets/board/menu.png'); -fx-background-size: cover;");
 
         Text title = new Text("Network Games");
         title.setFill(Color.WHITE);
