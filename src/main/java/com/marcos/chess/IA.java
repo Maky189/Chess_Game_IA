@@ -78,7 +78,13 @@ public class IA {
         int piece = board[move.fromX][move.fromY];
         int score = 0;
         
-        score += POSITION_SCORES[move.toX][move.toY] * 10;
+        // Special evaluation for king moves
+        if (Math.abs(piece) == 6) {  // King
+            score += evaluateKingPosition(board, move, piece);
+        } else {
+            // Regular position scoring for other pieces
+            score += POSITION_SCORES[move.toX][move.toY] * 10;
+        }
         
         // Development bonus (moving pieces from starting positions)
         if (isStartingPosition(move.fromX, move.fromY, piece)) {
@@ -115,6 +121,86 @@ public class IA {
         }
         
         return score;
+    }
+
+    private int evaluateKingPosition(int[][] board, Move move, int piece) {
+        int score = 0;
+        boolean isEndgame = isEndgame(board);
+        
+        if (!isEndgame) {
+            // Prefer corners and edges
+            if (isCorner(move.toX, move.toY)) {
+                score += 30;
+            } else if (isEdge(move.toX, move.toY)) {
+                score += 20;
+            }
+            
+            // Penality for moving to center squares
+            if (isCenterSquare(move.toX, move.toY)) {
+                score -= 40;
+            }
+            
+            // friendly pieces nearby = (protection) so IA get bonus kkk
+            score += evaluateKingShelter(board, move, piece);
+            
+            // Bonus for castling
+            if (isStartingPosition(move.fromX, move.fromY, piece)) {
+                if (move.toY == 6 || move.toY == 2) {  // Castling moves
+                    score += 50;
+                }
+            }
+        } else {
+            if (isEdge(move.toX, move.toY)) {
+                score += 10;
+            }
+        }
+        
+        return score;
+    }
+
+    private boolean isCorner(int x, int y) {
+        return (x == 0 || x == 7) && (y == 0 || y == 7);
+    }
+
+    private boolean isEdge(int x, int y) {
+        return x == 0 || x == 7 || y == 0 || y == 7;
+    }
+
+    private boolean isCenterSquare(int x, int y) {
+        return (x >= 2 && x <= 5) && (y >= 2 && y <= 5);
+    }
+
+    private int evaluateKingShelter(int[][] board, Move move, int piece) {
+        int score = 0;
+        int friendlySign = Integer.signum(piece);
+        
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+                
+                int newX = move.toX + dx;
+                int newY = move.toY + dy;
+                
+                if (isInBounds(newX, newY)) {
+                    int squarePiece = board[newX][newY];
+                    if (squarePiece != 0 && Integer.signum(squarePiece) == friendlySign) {
+                        // Bonus for friendly pieces next to the king
+                        score += 15;
+                        
+                        // Extra bonus for protecting pawns
+                        if (Math.abs(squarePiece) == 1) {
+                            score += 10;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return score;
+    }
+
+    private boolean isInBounds(int x, int y) {
+        return x >= 0 && x < 8 && y >= 0 && y < 8;
     }
 
     private int verifyRookPosition(int[][] board, Move move, int piece) {
@@ -218,11 +304,17 @@ public class IA {
 
     private int evaluateMove(Game game, Move move) {
         int[][] board = game.getBoard();
-        int score = 0;
         int piece = board[move.fromX][move.fromY];
+        int score = 0;
+        
+        // Check if we're in check and this is a defensive move
+        if (isKingInCheck(board, game.getCurrentPlayer())) {
+            score += evaluateCheckDefense(game, move, piece);
+        }
+        
         int pieceValue = getPieceValue(Math.abs(piece));
         
-        // Create a temporary board to simulate the move
+        // Create a temporary board to simulate move again not very perfomatiive but maybe there is no other way around
         int[][] tempBoard = new int[board.length][board.length];
         for (int i = 0; i < board.length; i++) {
             System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
@@ -295,21 +387,169 @@ public class IA {
             }
         }
         
+        // Add defense
+        if (!pieceWouldBeThreatened) {
+            // Check if this move helps defend friendly pieces
+            score += evaluateDefense(game, tempBoard, move, piece);
+        }
+        
         return score;
     }
 
-    private boolean isSquareUnderAttack(int[][] board, int x, int y, int attackerSign) {
-        // Check all opponent pieces that could capture this square
+    private int evaluateDefense(Game game, int[][] board, Move move, int piece) {
+        int score = 0;
+        int friendlySign = Integer.signum(piece);
+        
+        // Check all friendly pieces
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == friendlySign) {
+                    // If piece under attack
+                    if (isSquareUnderAttack(board, i, j, -friendlySign)) {
+                        // Count pieces defending this square
+                        // Count pieces attacking this square
+                        int defendersCount = countDefenders(board, i, j, friendlySign);
+                        int attackersCount = countAttackers(board, i, j, -friendlySign);
+                        
+                        // If we're moving to a position where we can defend
+                        if (canReachSquare(game, move.toX, move.toY, i, j)) {
+                            int pieceValue = getPieceValue(Math.abs(board[i][j]));
+                            
+                            if (defendersCount <= attackersCount) {
+                                score += (pieceValue / 100) * 30;
+                            } else {
+                                score += (pieceValue / 100) * 10;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return score;
+    }
+
+    private int countDefenders(int[][] board, int x, int y, int friendlySign) {
+        int count = 0;
+        Game tempGame = new Game(8);
+        tempGame.setBoard(board);
+        
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == friendlySign &&
+                    (i != x || j != y)) {
+                    // Dont caunt the piece itself
+                    List<int[]> moves = tempGame.calculatePossibleMoves(i, j);
+                    for (int[] move : moves) {
+                        if (move[0] == x && move[1] == y) {
+                            count++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private int countAttackers(int[][] board, int x, int y, int attackerSign) {
+        int count = 0;
+        Game tempGame = new Game(8);
+        tempGame.setBoard(board);
+        
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 if (board[i][j] != 0 && Integer.signum(board[i][j]) == attackerSign) {
-                    // Create a temporary game state to calculate moves
+                    List<int[]> moves = tempGame.calculatePossibleMoves(i, j);
+                    for (int[] move : moves) {
+                        if (move[0] == x && move[1] == y) {
+                            count++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private boolean canReachSquare(Game game, int fromX, int fromY, int toX, int toY) {
+        // Check if a piece at (fromX, fromY) can defend a piece at (toX, toY)
+        // This includes both direct protection and potential issues
+        int dx = Math.abs(toX - fromX);
+        int dy = Math.abs(toY - fromY);
+        
+        // Can reach directly
+        return dx <= 2 && dy <= 2;
+    }
+
+    private int evaluateCheckDefense(Game game, Move move, int piece) {
+        int score = 0;
+        int[][] board = game.getBoard();
+        
+        // Find the king's position
+        int[] kingPos = findOurKing(board, game.getCurrentPlayer());
+        if (kingPos == null) return 0;
+        
+        // If this is a king move then I dont want him
+        if (Math.abs(piece) == 6) {
+            score -= 200;
+        } else {
+            // Check if this move blocks the check
+            int[][] tempBoard = new int[board.length][board.length];
+            for (int i = 0; i < board.length; i++) {
+                System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
+            }
+            
+            // Make the move on temporary board
+            tempBoard[move.toX][move.toY] = piece;
+            tempBoard[move.fromX][move.fromY] = 0;
+            
+            // If this move blocks the check, give it a bonus proportional to piece value
+            if (!isKingInCheck(tempBoard, game.getCurrentPlayer())) {
+                int pieceValue = getPieceValue(Math.abs(piece));
+                score += 1000 - pieceValue;  // Higher bonus for using cheaper pieces
+                
+                // Extra bonus for maintaining piece protection
+                if (isSquareProtected(tempBoard, move.toX, move.toY, game.getCurrentPlayer())) {
+                    score += 100;
+                }
+            }
+        }
+        
+        return score;
+    }
+
+    private boolean isKingInCheck(int[][] board, int player) {
+        // Find king position
+        int[] kingPos = findOurKing(board, player);
+        if (kingPos == null) return false;
+        
+        // Check if king is under attack
+        return isSquareUnderAttack(board, kingPos[0], kingPos[1], -player);
+    }
+
+    private int[] findOurKing(int[][] board, int player) {
+        int kingValue = player * 6;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] == kingValue) {
+                    return new int[]{i, j};
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isSquareProtected(int[][] board, int x, int y, int player) {
+        // Check if any friendly piece can move to this square
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == player && 
+                    (i != x || j != y)) {  // Don't count the piece itself
                     Game tempGame = new Game(8);
                     tempGame.setBoard(board);
-                    List<int[]> attackerMoves = tempGame.calculatePossibleMoves(i, j);
-                    
-                    // Check if any move can capture our piece
-                    for (int[] move : attackerMoves) {
+                    List<int[]> moves = tempGame.calculatePossibleMoves(i, j);
+                    for (int[] move : moves) {
                         if (move[0] == x && move[1] == y) {
                             return true;
                         }
@@ -318,6 +558,54 @@ public class IA {
             }
         }
         return false;
+    }
+
+    private boolean isSquareUnderAttack(int[][] board, int x, int y, int attackerSign) {
+        int defendingPiece = board[x][y];
+        
+        // Get list of all attackers with their values
+        List<Integer> attackers = new ArrayList<>();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == attackerSign) {
+                    Game tempGame = new Game(8);
+                    tempGame.setBoard(board);
+                    List<int[]> moves = tempGame.calculatePossibleMoves(i, j);
+                    
+                    // If this piece can attack the square
+                    for (int[] move : moves) {
+                        if (move[0] == x && move[1] == y) {
+                            attackers.add(board[i][j]);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (attackers.isEmpty()) {
+            return false;
+        }
+        
+        // Sort attackers by value (prefer using lower value pieces)
+        attackers.sort((a, b) -> getPieceValue(Math.abs(a)) - getPieceValue(Math.abs(b)));
+        
+        // If defending piece exists, only consider appropriate attackers
+        if (defendingPiece != 0) {
+            int defendingValue = getPieceValue(Math.abs(defendingPiece));
+            // Find lowest value attacker that can take the piece
+            for (int attacker : attackers) {
+                int attackerValue = getPieceValue(Math.abs(attacker));
+                // Only consider attack if attacker is of lower or equal value
+                if (attackerValue <= defendingValue) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // For empty squares, any attack is valid
+        return true;
     }
 
     private boolean isStartingPosition(int x, int y, int piece) {

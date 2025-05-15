@@ -185,35 +185,27 @@ public class Game {
     }
 
     private boolean isKingThreatened(int[][] board, int kingX, int kingY, int opponentSign) {
+        // Add parameter to prevent infinite recursion
+        return isKingThreatened(board, kingX, kingY, opponentSign, false);
+    }
+
+    private boolean isKingThreatened(int[][] board, int kingX, int kingY, int opponentSign, boolean isCastlingCheck) {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                if (Integer.signum(board[i][j]) == opponentSign) {
-                    List<int[]> moves = calculateRawMoves(board, i, j);
-                    for (int[] move : moves) {
-                        if (move[0] == kingX && move[1] == kingY) {
-                            int piece = Math.abs(board[i][j]);
-                            // Knights and pawns don't need
-                            if (piece == 3 || piece == 1) {
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == opponentSign) {
+                    // For castling checks, we only need to check direct attacks
+                    if (isCastlingCheck) {
+                        // Simple check for direct attacks without recursion
+                        List<int[]> directMoves = calculateDirectAttacks(board, i, j);
+                        for (int[] move : directMoves) {
+                            if (move[0] == kingX && move[1] == kingY) {
                                 return true;
                             }
-
-                            // For other pieces check the path
-                            int dx = Integer.compare(kingX - i, 0);
-                            int dy = Integer.compare(kingY - j, 0);
-                            int x = i + dx;
-                            int y = j + dy;
-                            boolean pathClear = true;
-
-                            while (x != kingX || y != kingY) {
-                                if (board[x][y] != 0) {
-                                    pathClear = false;
-                                    break;
-                                }
-                                x += dx;
-                                y += dy;
-                            }
-
-                            if (pathClear) {
+                        }
+                    } else {
+                        List<int[]> moves = calculateRawMoves(board, i, j);
+                        for (int[] move : moves) {
+                            if (move[0] == kingX && move[1] == kingY) {
                                 return true;
                             }
                         }
@@ -222,6 +214,82 @@ public class Game {
             }
         }
         return false;
+    }
+
+    private List<int[]> calculateDirectAttacks(int[][] board, int x, int y) {
+        List<int[]> attacks = new ArrayList<>();
+        int piece = Math.abs(board[x][y]);
+        
+        switch (piece) {
+            case 1: // Pawn
+                int direction = Integer.signum(board[x][y]);
+                if (isInBounds(x + direction, y - 1)) {
+                    attacks.add(new int[]{x + direction, y - 1});
+                }
+                if (isInBounds(x + direction, y + 1)) {
+                    attacks.add(new int[]{x + direction, y + 1});
+                }
+                break;
+                
+            case 2: // Rook
+                addLinearAttacks(board, x, y, attacks, 0, 1);  // right
+                addLinearAttacks(board, x, y, attacks, 0, -1); // left
+                addLinearAttacks(board, x, y, attacks, 1, 0);  // down
+                addLinearAttacks(board, x, y, attacks, -1, 0); // up
+                break;
+                
+            case 3: // Knight
+                int[][] knightMoves = {{-2,-1}, {-2,1}, {-1,-2}, {-1,2}, {1,-2}, {1,2}, {2,-1}, {2,1}};
+                for (int[] move : knightMoves) {
+                    int newX = x + move[0];
+                    int newY = y + move[1];
+                    if (isInBounds(newX, newY)) {
+                        attacks.add(new int[]{newX, newY});
+                    }
+                }
+                break;
+                
+            case 4: // Bishop
+                addLinearAttacks(board, x, y, attacks, 1, 1);   // down-right
+                addLinearAttacks(board, x, y, attacks, 1, -1);  // down-left
+                addLinearAttacks(board, x, y, attacks, -1, 1);  // up-right
+                addLinearAttacks(board, x, y, attacks, -1, -1); // up-left
+                break;
+                
+            case 5: // Queen
+                addLinearAttacks(board, x, y, attacks, 0, 1);   // right
+                addLinearAttacks(board, x, y, attacks, 0, -1);  // left
+                addLinearAttacks(board, x, y, attacks, 1, 0);   // down
+                addLinearAttacks(board, x, y, attacks, -1, 0);  // up
+                addLinearAttacks(board, x, y, attacks, 1, 1);   // down-right
+                addLinearAttacks(board, x, y, attacks, 1, -1);  // down-left
+                addLinearAttacks(board, x, y, attacks, -1, 1);  // up-right
+                addLinearAttacks(board, x, y, attacks, -1, -1); // up-left
+                break;
+                
+            case 6: // King
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        if (i == 0 && j == 0) continue;
+                        if (isInBounds(x + i, y + j)) {
+                            attacks.add(new int[]{x + i, y + j});
+                        }
+                    }
+                }
+                break;
+        }
+        return attacks;
+    }
+
+    private void addLinearAttacks(int[][] board, int x, int y, List<int[]> attacks, int dx, int dy) {
+        int newX = x + dx;
+        int newY = y + dy;
+        while (isInBounds(newX, newY)) {
+            attacks.add(new int[]{newX, newY});
+            if (board[newX][newY] != 0) break; // Stop at first piece encountered
+            newX += dx;
+            newY += dy;
+        }
     }
 
     private boolean wouldResultInCheck(int pieceX, int pieceY, int newX, int newY) {
@@ -240,16 +308,10 @@ public class Game {
 
         // Find king position
         int kingX, kingY;
-        if (Math.abs(piece) == 6) {
-            kingX = newX;
-            kingY = newY;
-        } else {
-            int[] kingPos = findKingPosition(tempBoard, kingValue);
-            // if the king is not found, it means check
-            if (kingPos == null) return true;
-            kingX = kingPos[0];
-            kingY = kingPos[1];
-        }
+        int[] kingPos = findKingPosition(tempBoard, kingValue);
+        if (kingPos == null) return true;  // Missing this check
+        kingX = kingPos[0];
+        kingY = kingPos[1];
 
         int opponentSign = (piece > 0) ? -1 : 1;
 
@@ -554,7 +616,9 @@ public class Game {
         }
 
         int opponentSign = piece > 0 ? -1 : 1;
-        return !isKingThreatened(board, row, 4, opponentSign) && !isKingThreatened(board, row, 5, opponentSign) && !isKingThreatened(board, row, 6, opponentSign);
+        return !isKingThreatened(board, row, 4, opponentSign, true) && 
+               !isKingThreatened(board, row, 5, opponentSign, true) && 
+               !isKingThreatened(board, row, 6, opponentSign, true);
     }
 
     private boolean canCastleQueenside(int row, int piece) {
