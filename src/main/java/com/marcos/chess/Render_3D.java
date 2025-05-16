@@ -15,7 +15,6 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
@@ -29,6 +28,7 @@ import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
 import com.jme3.math.Ray;
 import com.jme3.material.RenderState;
+import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
 
 import java.util.List;
@@ -66,7 +66,7 @@ public class Render_3D implements Renderer {
         settings.setFrequency(displayMode.getRefreshRate());
 
         settings.setResolution(displayMode.getWidth(), displayMode.getHeight());
-        
+
 
         settings.setSamples(4);
         settings.setFrameRate(displayMode.getRefreshRate());
@@ -90,7 +90,6 @@ public class Render_3D implements Renderer {
         private static IA ia;
         private Material whiteMaterial;
         private Material blackMaterial;
-        private Material tableMaterial;
         private final float modelScale = 1.0f;
         private boolean flyCamEnabled = false;
         private Vector3f lastCameraPosition;
@@ -133,13 +132,6 @@ public class Render_3D implements Renderer {
             highlightMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.5f, 0.5f));
             highlightMaterial.setBoolean("UseMaterialColors", true);
             highlightMaterial.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-
-            // Add table material
-            tableMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-            tableMaterial.setTexture("DiffuseMap", assetManager.loadTexture("textures/wood.png"));
-            tableMaterial.setBoolean("UseMaterialColors", true);
-            tableMaterial.setColor("Ambient", new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
-            tableMaterial.setColor("Diffuse", new ColorRGBA(0.9f, 0.9f, 0.9f, 1.0f));
         }
 
         private void setupCamera() {
@@ -153,7 +145,7 @@ public class Render_3D implements Renderer {
         }
 
         private void setupLighting() {
-            TextureKey key = new TextureKey("assets/board/map5.hdr", true);
+            TextureKey key = new TextureKey("assets/board/map2.hdr", true);
             key.setGenerateMips(true);
             Texture envMap = assetManager.loadTexture(key);
             envMap.setWrap(WrapMode.EdgeClamp);
@@ -397,52 +389,52 @@ public class Render_3D implements Renderer {
 
                 Node rookNode = findPieceNodeAt(fromX, rookFromCol);
                 if (rookNode != null) {
-                    AnimationControl rookAnim = new AnimationControl(rookNode, 
-                        new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)), 
-                        new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)), 
-                        liftHeight, moveDuration, null);
+                    AnimationControl rookAnim = new AnimationControl(rookNode,
+                            new Vector3f((rookFromCol - 3.5f), 0.2f, (fromX - 3.5f)),
+                            new Vector3f((rookToCol - 3.5f), 0.2f, (fromX - 3.5f)),
+                            liftHeight, moveDuration, null);
                     rookNode.addControl(rookAnim);
                 }
             }
 
-            AnimationControl kingAnim = new AnimationControl(pieceNode, 
-                new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)), 
-                new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)), liftHeight, moveDuration, () -> {
-                    game.getBoard()[toX][toY] = movingPiece;
-                    game.getBoard()[fromX][fromY] = 0;
+            AnimationControl kingAnim = new AnimationControl(pieceNode,
+                    new Vector3f((fromY - 3.5f), 0.2f, (fromX - 3.5f)),
+                    new Vector3f((toY - 3.5f), 0.2f, (toX - 3.5f)), liftHeight, moveDuration, () -> {
+                game.getBoard()[toX][toY] = movingPiece;
+                game.getBoard()[fromX][fromY] = 0;
 
-                    if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
-                        game.performEnPassantCapture(toX, toY);
+                if (game.isEnPassantCapture(fromX, fromY, toX, toY)) {
+                    game.performEnPassantCapture(toX, toY);
+                }
+
+                game.updateLastMove(fromX, fromY, toX, toY);
+
+                if (isCastling) {
+                    if (toY > fromY) {
+                        game.performKingsideCastle(fromX);
+                    } else {
+                        game.performQueensideCastle(fromX);
                     }
+                }
 
-                    game.updateLastMove(fromX, fromY, toX, toY);
-
-                    if (isCastling) {
-                        if (toY > fromY) {
-                            game.performKingsideCastle(fromX);
-                        } else {
-                            game.performQueensideCastle(fromX);
-                        }
+                // Promotion pawn to queen
+                if (Math.abs(movingPiece) == 1 && (toX == 0 || toX == 7)) {
+                    int queenValue = 5 * Integer.signum(movingPiece);
+                    game.getBoard()[toX][toY] = queenValue;
+                    boardNode.detachChild(pieceNode);
+                    Node newQueenNode = loadPieceModel(queenValue);
+                    if (newQueenNode != null) {
+                        newQueenNode.setLocalScale(modelScale);
+                        newQueenNode.setLocalTranslation(toY - 3.5f, 0.2f, toX - 3.5f);
+                        boardNode.attachChild(newQueenNode);
                     }
+                }
 
-                    // Promotion pawn to queen
-                    if (Math.abs(movingPiece) == 1 && (toX == 0 || toX == 7)) {
-                        int queenValue = 5 * Integer.signum(movingPiece);
-                        game.getBoard()[toX][toY] = queenValue;
-                        boardNode.detachChild(pieceNode);
-                        Node newQueenNode = loadPieceModel(queenValue);
-                        if (newQueenNode != null) {
-                            newQueenNode.setLocalScale(modelScale);
-                            newQueenNode.setLocalTranslation(toY - 3.5f, 0.2f, toX - 3.5f);
-                            boardNode.attachChild(newQueenNode);
-                        }
-                    }
-
-                    changePlayer();
-                    if (!isMultiplayer && game.getCurrentPlayer() == -1) {
-                        handleAIMove();
-                    }
-                });
+                changePlayer();
+                if (!isMultiplayer && game.getCurrentPlayer() == -1) {
+                    handleAIMove();
+                }
+            });
 
             pieceNode.addControl(kingAnim);
         }
@@ -467,16 +459,16 @@ public class Render_3D implements Renderer {
                     float moveDuration = 0.5f;
 
                     AnimationControl anim = new AnimationControl(pieceToMove, new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)), new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)), liftHeight, moveDuration, () -> {
-                                game.getBoard()[aiMove.toX][aiMove.toY] = piece;
-                                game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                        game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                        game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
 
-                                if (game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY)) {
-                                    game.performEnPassantCapture(aiMove.toX, aiMove.toY);
-                                }
-                                game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+                        if (game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY)) {
+                            game.performEnPassantCapture(aiMove.toX, aiMove.toY);
+                        }
+                        game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
 
-                                changePlayer();
-                            });
+                        changePlayer();
+                    });
 
                     pieceToMove.addControl(anim);
                 }
@@ -584,21 +576,6 @@ public class Render_3D implements Renderer {
         }
 
         private Node createChessBoard(Game game) {
-            Node mainNode = new Node("mainNode");
-            
-            // Load and setup table
-            Spatial tableModel = assetManager.loadModel("assets/board/table.j3o");
-            tableModel.setMaterial(tableMaterial);
-            
-            // Scale the table to be larger than the board
-            float tableScale = 10f; // Adjust this value as needed
-            tableModel.setLocalScale(new  Vector3f(13, 11f, 10));
-            
-            // Position the table slightly below where the board will be
-            // Adjust  Yvalue if needed
-            tableModel.setLocalTranslation(0, -8f, 0); 
-            
-            // Create the chess board node
             Node boardNode = new Node("chessBoard");
             float squareSize = 1.0f;
 
@@ -636,14 +613,7 @@ public class Render_3D implements Renderer {
                 }
             }
 
-            // Add both table and board to the main node
-            mainNode.attachChild(tableModel);
-            mainNode.attachChild(boardNode);
-            
-            // Adjust the entire scene position if needed
-            mainNode.setLocalTranslation(0, 0.5f, 0); // Lift everything up slightly
-            
-            return mainNode;
+            return boardNode;
         }
 
         private Node loadPieceModel(int piece) {
