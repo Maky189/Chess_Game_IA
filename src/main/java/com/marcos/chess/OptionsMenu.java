@@ -47,7 +47,10 @@ public class OptionsMenu {
 
         StackPane testEnvironmentButton = createButton("3D Test Environment", Color.PURPLE, Color.DARKVIOLET);
         testEnvironmentButton.setOnMouseClicked(e -> {
-            Test3D.launch();
+            Test3D test3D = new Test3D(windowsWidth, windowsHeight);
+            test3D.initialize();
+            stage.hide(); // Hide the current window
+            test3D.createGameScene(windowsWidth, windowsHeight, false);
         });
 
         StackPane backButton = menu.createButton("Back", Color.GRAY, Color.DARKGRAY);

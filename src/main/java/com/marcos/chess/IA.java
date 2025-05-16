@@ -306,33 +306,70 @@ public class IA {
         int[][] board = game.getBoard();
         int piece = board[move.fromX][move.fromY];
         int score = 0;
+        int pieceValue = getPieceValue(Math.abs(piece));
         
-        // Check if we're in check and this is a defensive move
+        // Check if in check and this is a defensive move
         if (isKingInCheck(board, game.getCurrentPlayer())) {
             score += evaluateCheckDefense(game, move, piece);
         }
         
-        int pieceValue = getPieceValue(Math.abs(piece));
-        
-        // Create a temporary board to simulate move again not very perfomatiive but maybe there is no other way around
+        // Create temporary board to simulate move
         int[][] tempBoard = new int[board.length][board.length];
         for (int i = 0; i < board.length; i++) {
             System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
         }
         
-        // Make the move on it
+        // Make the move on temporary board
         tempBoard[move.toX][move.toY] = piece;
         tempBoard[move.fromX][move.fromY] = 0;
+        
+        // Check if AI square is on attack
+        boolean isCurrentlyThreatened = isSquareUnderAttack(board, move.fromX, move.fromY, -Integer.signum(piece));
+        
+        // move highervalue pieces to safety
+        if (isCurrentlyThreatened && Math.abs(piece) >= 4) {
+            // Money to GOOOO OUTTT
+            score += pieceValue * 3;
+            
+            // MOREEEE MONEEYYYYYY
+            if (!isSquareUnderAttack(tempBoard, move.toX, move.toY, -Integer.signum(piece))) {
+                score += pieceValue * 5;
+            } else {
+                int capturedPiece = board[move.toX][move.toY];
+                if (capturedPiece == 0 || 
+                    getPieceValue(Math.abs(capturedPiece)) <= pieceValue) {
+                    return -1;
+                }
+            }
+        }
+        
+        if (Math.abs(piece) >= 4 && Math.abs(piece) != 6) {
+            boolean isSquareThreatened = isSquareUnderAttack(tempBoard, move.toX, move.toY, -Integer.signum(piece));
+            
+            if (isSquareThreatened) {
+                int defendersCount = countDefenders(tempBoard, move.toX, move.toY, Integer.signum(piece));
+                int attackersCount = countAttackers(tempBoard, move.toX, move.toY, -Integer.signum(piece));
+                
+                
+                if (defendersCount <= attackersCount) {
+                    int capturedPiece = board[move.toX][move.toY];
+                    int captureValue = capturedPiece != 0 ? getPieceValue(Math.abs(capturedPiece)) : 0;
+                    
+                    if (captureValue <= pieceValue) {
+                        return -1;
+                    }
+                    score -= pieceValue * 30;
+                }
+            }
+        }
         
         // Check if any piece would be threatened after this move
         boolean pieceWouldBeThreatened = false;
         if (game.getCurrentPlayer() == 1) {
-            // Find all the pieces that would be threatened
             for (int i = 0; i < tempBoard.length; i++) {
                 for (int j = 0; j < tempBoard[i].length; j++) {
                     if (tempBoard[i][j] != 0 && Integer.signum(tempBoard[i][j]) == 1) {
                         if (isSquareUnderAttack(tempBoard, i, j, -1)) {
-                            // If the threatened piece is more valuable than what we might capture
                             if (getPieceValue(Math.abs(tempBoard[i][j])) > pieceValue) {
                                 pieceWouldBeThreatened = true;
                                 break;
@@ -344,52 +381,44 @@ public class IA {
             }
         }
         
-        // Analizing capture value
+        // Evaluate capture value
         int capturedPiece = board[move.toX][move.toY];
         if (capturedPiece != 0) {
             int capturedValue = getPieceValue(Math.abs(capturedPiece));
-            
-            // Check if the piece could be recaptured
             boolean couldBeRecaptured = isSquareUnderAttack(tempBoard, move.toX, move.toY, -Integer.signum(piece));
             
             if (couldBeRecaptured || pieceWouldBeThreatened) {
-                // If the piece is less valuable than the captured piece,then make the trade
+                // Only make the trade if capturing more valuable piece
                 if (capturedValue > pieceValue) {
                     score += (capturedValue - pieceValue) * 100;
                 } else {
-                    // Avoid
                     return -1;
                 }
             } else {
-                // Safe capture, then full value
                 score += capturedValue * 100;
             }
         } else {
             if (pieceWouldBeThreatened) {
-                // Penalized for moving to a position that would leave pieces threatened
                 return -1;
             }
             
-            // Check if the destination square is threatened
+            // Check if destination square is threatened
             boolean isSquareThreatened = isSquareUnderAttack(board, move.toX, move.toY, -Integer.signum(piece));
-            
             if (isSquareThreatened) {
-                // Is worng moving into a threatened square
                 if (Math.abs(piece) == 6) {
                     return -1;
                 }
                 score -= pieceValue * 50;
             }
             
-            // Add position score only if the move is somewhat safe
+            // Add position score if move is safe
             if (!isSquareThreatened && !pieceWouldBeThreatened || score > 0) {
                 score += analizePosition(game, move);
             }
         }
         
-        // Add defense
+        // Add defense evaluation
         if (!pieceWouldBeThreatened) {
-            // Check if this move helps defend friendly pieces
             score += evaluateDefense(game, tempBoard, move, piece);
         }
         

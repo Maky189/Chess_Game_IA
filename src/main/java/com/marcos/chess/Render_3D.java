@@ -15,6 +15,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 import com.jme3.texture.Texture;
@@ -28,7 +29,6 @@ import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
 import com.jme3.math.Ray;
 import com.jme3.material.RenderState;
-import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
 
 import java.util.List;
@@ -90,6 +90,7 @@ public class Render_3D implements Renderer {
         private static IA ia;
         private Material whiteMaterial;
         private Material blackMaterial;
+        private Material tableMaterial;
         private final float modelScale = 1.0f;
         private boolean flyCamEnabled = false;
         private Vector3f lastCameraPosition;
@@ -132,6 +133,13 @@ public class Render_3D implements Renderer {
             highlightMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.5f, 0.5f));
             highlightMaterial.setBoolean("UseMaterialColors", true);
             highlightMaterial.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+
+            // Add table material
+            tableMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            tableMaterial.setTexture("DiffuseMap", assetManager.loadTexture("textures/wood.png"));
+            tableMaterial.setBoolean("UseMaterialColors", true);
+            tableMaterial.setColor("Ambient", new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
+            tableMaterial.setColor("Diffuse", new ColorRGBA(0.9f, 0.9f, 0.9f, 1.0f));
         }
 
         private void setupCamera() {
@@ -145,7 +153,7 @@ public class Render_3D implements Renderer {
         }
 
         private void setupLighting() {
-            TextureKey key = new TextureKey("assets/board/map3.hdr", true);
+            TextureKey key = new TextureKey("assets/board/map5.hdr", true);
             key.setGenerateMips(true);
             Texture envMap = assetManager.loadTexture(key);
             envMap.setWrap(WrapMode.EdgeClamp);
@@ -576,6 +584,21 @@ public class Render_3D implements Renderer {
         }
 
         private Node createChessBoard(Game game) {
+            Node mainNode = new Node("mainNode");
+            
+            // Load and setup table
+            Spatial tableModel = assetManager.loadModel("assets/board/table.j3o");
+            tableModel.setMaterial(tableMaterial);
+            
+            // Scale the table to be larger than the board
+            float tableScale = 10f; // Adjust this value as needed
+            tableModel.setLocalScale(new  Vector3f(13, 11f, 10));
+            
+            // Position the table slightly below where the board will be
+            // Adjust  Yvalue if needed
+            tableModel.setLocalTranslation(0, -8f, 0); 
+            
+            // Create the chess board node
             Node boardNode = new Node("chessBoard");
             float squareSize = 1.0f;
 
@@ -613,7 +636,14 @@ public class Render_3D implements Renderer {
                 }
             }
 
-            return boardNode;
+            // Add both table and board to the main node
+            mainNode.attachChild(tableModel);
+            mainNode.attachChild(boardNode);
+            
+            // Adjust the entire scene position if needed
+            mainNode.setLocalTranslation(0, 0.5f, 0); // Lift everything up slightly
+            
+            return mainNode;
         }
 
         private Node loadPieceModel(int piece) {
