@@ -14,7 +14,7 @@ public class IA {
     // while also considering the value of the piece being moved
     private static final int[][] POSITION_SCORES = {
         {1,  1,  1,  1,  1,  1,  1,  1},
-        {0,  5, 10, 10, 10, 10,  5,  1},
+        {0,  5, 10, 10, 10, 10,  5,  0},
         {1, 10, 20, 30, 30, 20, 10,  1},
         {1, 10, 30, 40, 40, 30, 10,  1},
         {1, 10, 30, 40, 40, 30, 10,  1},

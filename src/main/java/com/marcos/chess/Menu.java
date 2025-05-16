@@ -34,10 +34,10 @@ public class Menu {
     public void showMenu() {
         primaryStage.setTitle("Chess Game Menu");
 
-        StackPane startGameButton = createButton("SinglePlayer", Color.BLUE, Color.DARKBLUE);
+        StackPane startGameButton = createButton("SinglePlayer", Color.GRAY, Color.DARKGRAY);
         startGameButton.setOnMouseClicked(e -> startGame(false));
         
-        StackPane multiplayerGameButton = createButton("Multiplayer", Color.GREEN, Color.DARKGREEN);
+        StackPane multiplayerGameButton = createButton("Multiplayer", Color.GRAY, Color.DARKGRAY);
         multiplayerGameButton.setOnMouseClicked(e -> {
             MenuMultiplayer multiplayerMenu = new MenuMultiplayer(primaryStage, windowsWidth, windowsHeight);
             Scene multiplayerScene = multiplayerMenu.createScene();
@@ -46,7 +46,7 @@ public class Menu {
             primaryStage.setFullScreen(true);
         });
 
-        StackPane optionsButton = createButton("Options", Color.ORANGE, Color.DARKORANGE);
+        StackPane optionsButton = createButton("Options", Color.GRAY, Color.DARKGREY);
         optionsButton.setOnMouseClicked(e -> {
             OptionsMenu optionsMenu = new OptionsMenu(primaryStage, windowsWidth, windowsHeight, this);
             Scene optionsScene = optionsMenu.createScene();
@@ -54,7 +54,7 @@ public class Menu {
             primaryStage.setFullScreen(true);
         });
 
-        StackPane quitButton = createButton("Quit", Color.DARKRED, Color.DARKRED, 100, 50);
+        StackPane quitButton = createButton("Quit", Color.GRAY, Color.DARKGRAY.grayscale(), 100, 50);
         quitButton.setOnMouseClicked(e -> {
             Platform.exit();
         });
