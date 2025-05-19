@@ -39,7 +39,7 @@ public class IA {
                 }
             }
             
-            // If no positive moves found, make analise of the position to moves
+            // If no positive moves were found, make analise of the position to moves
             if (scoredMoves.isEmpty()) {
                 for (Move move : possibleMoves) {
                     int positionScore = analizePosition(game, move);
@@ -135,7 +135,7 @@ public class IA {
             }
         }
         
-        // Bonus for outpost positions (protected by friendly pawn)
+        // Bonus for bettter positions (protected by friendly pawn)
         int pawnDirection = (piece > 0) ? 1 : -1;
         if (isInBounds(move.toX + pawnDirection, move.toY - 1)) {
             if (board[move.toX + pawnDirection][move.toY - 1] == piece / Math.abs(piece)) {
@@ -185,7 +185,7 @@ public class IA {
                 }
             }
             
-            // Heavily penalize moving to diagonally threatened squares
+            //penalize moving to diagonally threatened squares
             if (isDiagonallyThreatened) {
                 score -= 80;
             }
@@ -195,14 +195,14 @@ public class IA {
                 score += 30;
             }
             
-            // More points for moving off back rank when safe
+            // More points for moving out
             if (move.fromX == (piece > 0 ? 7 : 0) && 
                 !isSquareUnderAttack(board, move.toX, move.toY, -Integer.signum(piece)) &&
                 isSquareProtected(board, move.toX, move.toY, Integer.signum(piece))) {
                 score += 25;
             }
             
-            // Points for controlling open files
+            // Points for controlling open lines
             if (emptySquaresInLine >= 5) {
                 score += 25;
                 if (!isLineControlledByEnemyRook(board, move.toY, piece)) {
@@ -342,13 +342,13 @@ public class IA {
         int pieceCount = 0;
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                 // Count non-king pieces
+                 // Count other pieces
                 if (board[i][j] != 0 && Math.abs(board[i][j]) != 6) { 
                     pieceCount++;
                 }
             }
         }
-         // Consider it endgame if 10 or fewer pieces remain
+         // Consider endgame if 10 or fewer pieces remain
         return pieceCount <= 10; 
     }
 
@@ -405,7 +405,7 @@ public class IA {
             score += evaluateCheckDefense(game, move, piece);
         }
         
-        // Create temporary board to simulate move
+        // Create temporary board to make the move
         int[][] tempBoard = new int[board.length][board.length];
         for (int i = 0; i < board.length; i++) {
             System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);
@@ -606,7 +606,8 @@ public class IA {
             // Only move next to king if the square is well protected
             int defendersCount = countDefenders(tempBoard, move.toX, move.toY, Integer.signum(piece));
             if (defendersCount == 0) {
-                return -1000; // Heavily penalize unprotected moves next to king
+                //DO NOT GO NEXT TO THE KING OR YOU LOSE POINTS IDIOT
+                return -1000;
             }
         }
         
@@ -625,7 +626,8 @@ public class IA {
         // Coordinate attacks with other pieces
         int attackersCount = countAttackers(tempBoard, enemyKingPos[0], enemyKingPos[1], Integer.signum(piece));
         if (attackersCount > 1) {
-            score += attackersCount * 100; // Bonus for multiple attackers
+            // As more attackers the better the chances right? i guess...
+            score += attackersCount * 100;
         }
         
         // Check if move creates a discovered attack
@@ -670,7 +672,7 @@ public class IA {
             int newY = kingY + dir[1];
             
             if (isInBounds(newX, newY)) {
-                // Square must be empty or contain enemy piece
+                // Square must be empty or having enemy piece
                 if (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != kingSign) {
                     // Create temporary board to test if move would be safe
                     int[][] tempBoard = new int[board.length][board.length];
@@ -718,8 +720,8 @@ public class IA {
         // Check if any friendly piece can move to this square
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
-                if (board[i][j] != 0 && Integer.signum(board[i][j]) == player && 
-                    (i != x || j != y)) {  // Don't count the piece itself
+                if (board[i][j] != 0 && Integer.signum(board[i][j]) == player && (i != x || j != y)) {
+                    // Don't count the piece itself
                     Game tempGame = new Game(8);
                     tempGame.setBoard(board);
                     List<int[]> moves = tempGame.calculatePossibleMoves(i, j);
@@ -764,7 +766,7 @@ public class IA {
         // Sort attackers by value (prefer using lower value pieces)
         attackers.sort((a, b) -> getPieceValue(Math.abs(a)) - getPieceValue(Math.abs(b)));
         
-        // If defending piece exists, only consider appropriate attackers
+        // If defending piece exists, only consider low attackers
         if (defendingPiece != 0) {
             int defendingValue = getPieceValue(Math.abs(defendingPiece));
             // Find lowest value attacker that can take the piece
@@ -803,12 +805,20 @@ public class IA {
 
     private int getPieceValue(int piece) {
         return switch (piece) {
-            case 1 -> 100;   // Pawn
-            case 2 -> 500;   // Rook
-            case 3 -> 300;   // Knight
-            case 4 -> 300;   // Bishop
-            case 5 -> 900;   // Queen
-            case 6 -> 10000; // King
+            /*
+            100 -> Pawn
+            500 -> Rook
+            300 -> Knight
+            300 -> Bishop
+            900 -> Queen
+            10000 -> King
+             */
+            case 1 -> 100;
+            case 2 -> 500;
+            case 3 -> 300;
+            case 4 -> 300;
+            case 5 -> 900;
+            case 6 -> 10000;
             default -> 0;
         };
     }

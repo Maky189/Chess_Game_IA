@@ -136,7 +136,7 @@ public class Test3D implements Renderer {
 
             // Add table material
             tableMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-            tableMaterial.setTexture("DiffuseMap", assetManager.loadTexture("textures/table_diffuse.png"));
+            tableMaterial.setTexture("DiffuseMap", assetManager.loadTexture("textures/wood.png"));
             tableMaterial.setBoolean("UseMaterialColors", true);
             tableMaterial.setColor("Ambient", new ColorRGBA(0.5f, 0.5f, 0.5f, 1.0f));
             tableMaterial.setColor("Diffuse", new ColorRGBA(0.9f, 0.9f, 0.9f, 1.0f));

@@ -102,7 +102,7 @@ public class Render_3D implements Renderer {
         private boolean introAnimationDone = false;
         private float introTimer = 0f;
         private int currentPass = 0;
-        private final float INTRO_DURATION = 10f; // 10 seconds per pass
+        private final float INTRO_DURATION = 10f;
         private final int TOTAL_PASSES = 3;
 
         public ChessGame(Game game, boolean isMultiplayer) {
@@ -154,7 +154,7 @@ public class Render_3D implements Renderer {
                 // End all animations
                 introAnimationDone = true;
                 inputManager.setCursorVisible(true);
-                setupCamera(); // Reset to normal game camera
+                setupCamera();
                 return;
             }
 
@@ -163,14 +163,14 @@ public class Render_3D implements Renderer {
             float passProgress = (introTimer % INTRO_DURATION) / INTRO_DURATION;
 
             switch (currentPass) {
-                case 0 -> firstPass(passProgress);  // Overview rotation
-                case 1 -> secondPass(passProgress); // White pieces presentation
-                case 2 -> thirdPass(passProgress);  // Black pieces presentation
+                case 0 -> firstPass((introTimer % 30) / 30);
+                case 1 -> secondPass(passProgress);
+                case 2 -> thirdPass(passProgress);
             }
         }
 
         private void firstPass(float progress) {
-            // Original rotating overview animation
+            //rotating animation
             float angle = progress * FastMath.TWO_PI * 1.5f;
             float radius = 8.0f - (progress * 3.0f);
             float height = 6.0f - (progress * 2.0f);
@@ -188,16 +188,16 @@ public class Render_3D implements Renderer {
         }
 
         private void secondPass(float progress) {
-            // White pieces presentation - moving horizontally across the rank
+            // White pieces presentation
             float startX = -4f;
             float endX = 4f;
             float x = startX + (progress * (endX - startX));
             
             // Position camera in front of the pieces at board level
-            Vector3f cameraPosition = new Vector3f(x, 1.0f, 0.0f); // Lower height, closer to pieces
-            Vector3f targetPosition = new Vector3f(x, 0.5f, 6.5f); // Looking at the back rank
+            Vector3f cameraPosition = new Vector3f(x, 1.0f, 0.0f);
+            Vector3f targetPosition = new Vector3f(x, 0.5f, 6.5f); 
             
-            // Add slight camera tilt and sway
+            // Add slight camera to side
             float tiltAngle = FastMath.sin(progress * FastMath.PI) * 0.1f;
             float sway = FastMath.sin(progress * FastMath.PI * 2) * 0.2f;
             
@@ -206,16 +206,16 @@ public class Render_3D implements Renderer {
         }
 
         private void thirdPass(float progress) {
-            // Black pieces presentation - moving horizontally across the rank
+            
             float startX = 4f;
             float endX = -4f;
             float x = startX + (progress * (endX - startX));
             
-            // Position camera in front of the black pieces at board level
-            Vector3f cameraPosition = new Vector3f(x, 1.0f, 0.0f); // Lower height, closer to pieces
-            Vector3f targetPosition = new Vector3f(x, 0.5f, -6.5f); // Looking at the back rank
             
-            // Add slight camera tilt and sway
+            Vector3f cameraPosition = new Vector3f(x, 1.0f, 0.0f);
+            Vector3f targetPosition = new Vector3f(x, 0.5f, -6.5f);
+            
+            
             float tiltAngle = FastMath.sin(progress * FastMath.PI) * 0.1f;
             float sway = FastMath.sin(progress * FastMath.PI * 2) * 0.2f;
             
@@ -224,7 +224,7 @@ public class Render_3D implements Renderer {
         }
 
         private void initializeMaterials() {
-            // Enhanced board materials
+            // board materials
             whiteMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
             whiteMaterial.setFloat("Metallic", 0.1f);
             whiteMaterial.setFloat("Roughness", 0.2f);
@@ -235,7 +235,7 @@ public class Render_3D implements Renderer {
             blackMaterial.setFloat("Roughness", 0.2f);
             blackMaterial.setColor("BaseColor", new ColorRGBA(0.02f, 0.02f, 0.02f, 0.0f));
             
-            // Keep your existing highlight material as is
+            //highlight material
             highlightMaterial = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
             highlightMaterial.setColor("Diffuse", new ColorRGBA(0, 0, 1f, 0.5f));
             highlightMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.5f, 0.5f));
@@ -244,18 +244,18 @@ public class Render_3D implements Renderer {
         }
 
         private void setupCamera() {
-            cam.setLocation(new Vector3f(0, 10, 7));
+            cam.setLocation(new Vector3f(0, 7, 7));
             cam.lookAt(Vector3f.ZERO, Vector3f.ZERO);
         }
 
         private void setupCameraMultiplayer() {
-            cam.setLocation(new Vector3f(0, 10, 7));
+            cam.setLocation(new Vector3f(0, 8, 8));
             cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
         }
 
         private void setupLighting() {
-            // Your existing HDR environment setup
-            TextureKey key = new TextureKey("assets/board/map1.hdr", true);
+            // HDR setup
+            TextureKey key = new TextureKey("assets/board/map2.hdr", true);
             key.setGenerateMips(true);
             Texture envMap = assetManager.loadTexture(key);
             envMap.setWrap(WrapMode.EdgeClamp);
@@ -263,24 +263,24 @@ public class Render_3D implements Renderer {
             Spatial sky = SkyFactory.createSky(assetManager, envMap, SkyFactory.EnvMapType.EquirectMap);
             rootNode.attachChild(sky);
 
-            // Enhanced lighting setup
+            // Lightning of the scene
             DirectionalLight sun = new DirectionalLight();
             sun.setDirection(new Vector3f(-0.5f, -1.5f, -0.5f).normalizeLocal());
             sun.setColor(ColorRGBA.White.mult(1.2f));
             rootNode.addLight(sun);
 
-            // Softer ambient light
+            // Ambient light, I've tryied a softer one
             com.jme3.light.AmbientLight ambient = new com.jme3.light.AmbientLight();
             ambient.setColor(new ColorRGBA(0.4f, 0.4f, 0.45f, 1.0f));
             rootNode.addLight(ambient);
 
-            // Rim light for better piece definition
+            // Better defenition os the pieces throgh lightning
             DirectionalLight rimLight = new DirectionalLight();
             rimLight.setDirection(new Vector3f(0.0f, -0.5f, 1.0f).normalizeLocal());
             rimLight.setColor(ColorRGBA.White.mult(0.4f));
             rootNode.addLight(rimLight);
 
-            // Ground bounce light
+            // Ground light
             DirectionalLight groundLight = new DirectionalLight();
             groundLight.setDirection(new Vector3f(0.0f, 1.0f, 0.0f).normalizeLocal());
             groundLight.setColor(new ColorRGBA(0.3f, 0.3f, 0.35f, 1.0f));
@@ -306,14 +306,15 @@ public class Render_3D implements Renderer {
             lastCameraPosition = new Vector3f(0, 10, 7);
             lastCameraDirection = Vector3f.ZERO;
 
-            // visibility of mouse
+            // mouse visibility
             inputManager.setCursorVisible(true);
 
 
         }
 
         private final ActionListener actionListener = (name, pressed, tpf) -> {
-            if (!introAnimationDone) return; // Ignore input during intro
+            //Ignore any input during the inro
+            if (!introAnimationDone) return;
 
             if (name.equals("ToggleFlyCam") && !pressed) {
                 flyCamEnabled = !flyCamEnabled;
@@ -368,7 +369,7 @@ public class Render_3D implements Renderer {
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    restart();
                 }
             }
         };
