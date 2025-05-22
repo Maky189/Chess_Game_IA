@@ -8,7 +8,7 @@ public class GameOptions {
     private static GameOptions instance;
     
     private boolean is3DMode;
-    // Add other options here as needed
+    private boolean playAsWhite = true;  // Default to playing as white
 
     private GameOptions() {
         loadOptions();
@@ -30,23 +30,34 @@ public class GameOptions {
         saveOptions();
     }
 
+    public boolean isPlayingAsWhite() {
+        return playAsWhite;
+    }
+    
+    public void setPlayAsWhite(boolean playAsWhite) {
+        this.playAsWhite = playAsWhite;
+        saveOptions();
+    }
+
     private void loadOptions() {
         try {
             if (Files.exists(Paths.get(OPTIONS_FILE))) {
                 try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(OPTIONS_FILE))) {
                     OptionsData data = (OptionsData) ois.readObject();
                     this.is3DMode = data.is3DMode;
+                    this.playAsWhite = data.playAsWhite;
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
             // If there's an error, use defaults
             this.is3DMode = false;
+            this.playAsWhite = true;
         }
     }
 
     private void saveOptions() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(OPTIONS_FILE))) {
-            OptionsData data = new OptionsData(is3DMode);
+            OptionsData data = new OptionsData(is3DMode, playAsWhite);
             oos.writeObject(data);
         } catch (IOException e) {
             e.printStackTrace();
@@ -56,9 +67,11 @@ public class GameOptions {
     private static class OptionsData implements Serializable {
         private static final long serialVersionUID = 1L;
         private final boolean is3DMode;
+        private final boolean playAsWhite;
 
-        public OptionsData(boolean is3DMode) {
+        public OptionsData(boolean is3DMode, boolean playAsWhite) {
             this.is3DMode = is3DMode;
+            this.playAsWhite = playAsWhite;
         }
     }
 }

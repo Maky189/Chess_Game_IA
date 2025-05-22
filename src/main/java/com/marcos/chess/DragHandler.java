@@ -88,7 +88,9 @@ public class DragHandler {
     private void handleAIMove() {
         PauseTransition pause = new PauseTransition(Duration.seconds(DELAY));
         pause.setOnFinished(event -> {
-            IA.Move aiMove = ia.makeMove(game, -1);
+            
+            int aiPlayer = GameOptions.getInstance().isPlayingAsWhite() ? -1 : 1;
+            IA.Move aiMove = ia.makeMove(game, aiPlayer);
             if (aiMove != null) {
                 isAnimating = true;
                 int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];

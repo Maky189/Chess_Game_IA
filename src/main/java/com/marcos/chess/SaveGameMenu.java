@@ -167,28 +167,7 @@ public class SaveGameMenu {
             String gameName = nameField.getText().trim();
             if (!gameName.isEmpty()) {
                 dialog.close();
-                MainGame.resetGameInstance(8);
-                Game game = MainGame.getGameInstance(8);
-                GameSaver.saveGame(gameName, game, "SinglePlayer");
-                
-                // Use appropriate renderer based on 3D mode
-                Renderer renderer = Menu.is3DModeEnabled() ? new Render_3D(windowsWidth, windowsHeight) : new Renderer_2D(windowsWidth, windowsHeight);
-                
-                if (renderer instanceof Renderer_2D) {
-                    ((Renderer_2D)renderer).setStage(stage);
-                    ((Renderer_2D)renderer).setCurrentProfile(gameName);
-                }
-                
-                renderer.initialize();
-                
-                if (Menu.is3DModeEnabled()) {
-                    stage.hide();
-                    renderer.createGameScene(windowsWidth, windowsHeight, false);
-                } else {
-                    Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
-                    stage.setScene(gameScene);
-                    stage.setFullScreen(true);
-                }
+                startGame(gameName);
             }
         });
 
@@ -196,5 +175,47 @@ public class SaveGameMenu {
         Scene dialogScene = new Scene(dialogVbox, 400, 200);
         dialog.setScene(dialogScene);
         dialog.show();
+    }
+
+    private void startGame(String gameName) {
+        MainGame.resetGameInstance(8);
+        Game game = MainGame.getGameInstance(8);
+        boolean playAsWhite = GameOptions.getInstance().isPlayingAsWhite();
+        
+        // If playing as black, let AI make first move as white (player = 1)
+        if (!playAsWhite) {
+            IA ia = new IA();
+            // Change this line: use player = 1 for white
+            IA.Move aiMove = ia.makeMove(game, 1);  // AI plays as white
+            if (aiMove != null) {
+                game.getBoard()[aiMove.toX][aiMove.toY] = game.getBoard()[aiMove.fromX][aiMove.fromY];
+                game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+                game.switchPlayer();  // Switch to black (player's turn)
+            }
+        }
+        
+        GameSaver.saveGame(gameName, game, "SinglePlayer");
+        
+        // Use appropriate renderer based on 3D mode
+        Renderer renderer = Menu.is3DModeEnabled() ? 
+            new Render_3D(windowsWidth, windowsHeight) : 
+            new Renderer_2D(windowsWidth, windowsHeight);
+        
+        if (renderer instanceof Renderer_2D) {
+            ((Renderer_2D)renderer).setStage(stage);
+            ((Renderer_2D)renderer).setCurrentProfile(gameName);
+        }
+        
+        renderer.initialize();
+        
+        if (Menu.is3DModeEnabled()) {
+            stage.hide();
+            renderer.createGameScene(windowsWidth, windowsHeight, false);
+        } else {
+            Scene gameScene = renderer.createGameScene(windowsWidth, windowsHeight, false);
+            stage.setScene(gameScene);
+            stage.setFullScreen(true);
+        }
     }
 }

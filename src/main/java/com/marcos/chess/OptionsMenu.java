@@ -4,6 +4,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -34,17 +35,58 @@ public class OptionsMenu {
         title.setFill(Color.WHITE);
         title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
 
+        // 3D Mode checkbox
         CheckBox enable3DMode = new CheckBox("Enable 3D Mode");
-        enable3DMode.setStyle("-fx-text-fill: black; " +
+        enable3DMode.setStyle("-fx-text-fill: white; " +
                             "-fx-font-family: 'Verdana'; " +
                             "-fx-font-size: 22px; " +
-                            "-fx-font-weight: bold; " +
-                            "-fx-background-color: rgba(255, 255, 255, 0.8); " +
-                            "-fx-padding: 5 10 5 10; " +
-                            "-fx-background-radius: 5;");
+                            "-fx-font-weight: bold;");
         enable3DMode.setSelected(GameOptions.getInstance().is3DModeEnabled());
-        enable3DMode.setOnAction(e -> menu.set3DMode(enable3DMode.isSelected()));
+        
+        // Color selection toggle
+        HBox colorSelection = new HBox(20);
+        colorSelection.setAlignment(Pos.CENTER);
 
+        Text colorLabel = new Text("Play as:");
+        colorLabel.setFill(Color.WHITE);
+        colorLabel.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+
+        ColorToggleSwitch colorToggle = new ColorToggleSwitch(GameOptions.getInstance().isPlayingAsWhite());
+                
+        Text whiteText = new Text("White");
+        Text blackText = new Text("Black");
+        whiteText.setFill(Color.WHITE);
+        blackText.setFill(Color.WHITE);
+        whiteText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        blackText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        
+        // Make the texts clickable as well
+        whiteText.setOnMouseClicked(e -> {
+            colorToggle.setWhite(true);
+            GameOptions.getInstance().setPlayAsWhite(true);
+        });
+
+        blackText.setOnMouseClicked(e -> {
+            colorToggle.setWhite(false);
+            GameOptions.getInstance().setPlayAsWhite(false);
+        });
+
+        // Add a mouse hover effect
+        whiteText.setOnMouseEntered(e -> whiteText.setFill(Color.LIGHTGRAY));
+        whiteText.setOnMouseExited(e -> whiteText.setFill(Color.WHITE));
+        blackText.setOnMouseEntered(e -> blackText.setFill(Color.LIGHTGRAY));
+        blackText.setOnMouseExited(e -> blackText.setFill(Color.WHITE));
+
+        colorSelection.getChildren().addAll(colorLabel, whiteText, colorToggle, blackText);
+
+        // Add listeners
+        enable3DMode.setOnAction(e -> menu.set3DMode(enable3DMode.isSelected()));
+        colorToggle.setOnMouseClicked(e -> {
+            colorToggle.toggle();
+            GameOptions.getInstance().setPlayAsWhite(colorToggle.isWhite());
+        });
+
+        // Test Environment button
         StackPane testEnvironmentButton = createButton("3D Test Environment", Color.PURPLE, Color.DARKVIOLET);
         testEnvironmentButton.setOnMouseClicked(e -> {
             Test3D test3D = new Test3D(windowsWidth, windowsHeight);
@@ -56,9 +98,9 @@ public class OptionsMenu {
         StackPane backButton = menu.createButton("Back", Color.GRAY, Color.DARKGRAY);
         backButton.setOnMouseClicked(e -> menu.showMenu());
 
-        VBox optionsBox = new VBox(20);
+        VBox optionsBox = new VBox(30);
         optionsBox.setAlignment(Pos.CENTER);
-        optionsBox.getChildren().addAll(enable3DMode, testEnvironmentButton, backButton);
+        optionsBox.getChildren().addAll(enable3DMode, colorSelection, testEnvironmentButton, backButton);
 
         AnchorPane.setTopAnchor(title, 50.0);
         AnchorPane.setLeftAnchor(title, 50.0);
