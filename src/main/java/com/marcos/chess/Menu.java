@@ -2,7 +2,6 @@ package com.marcos.chess;
 
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -27,7 +26,7 @@ public class Menu {
         this.primaryStage = primaryStage;
         this.windowsWidth = windowsWidth;
         this.windowsHeight = windowsHeight;
-        this.is3DMode = gameOptions.is3DModeEnabled(); // Load saved preference
+        this.is3DMode = gameOptions.is3DModeEnabled();
         this.currentRenderer = is3DMode ? new Render_3D(windowsWidth, windowsHeight) : new Renderer_2D(windowsWidth, windowsHeight);
     }
 
@@ -51,6 +50,7 @@ public class Menu {
             OptionsMenu optionsMenu = new OptionsMenu(primaryStage, windowsWidth, windowsHeight, this);
             Scene optionsScene = optionsMenu.createScene();
             primaryStage.setScene(optionsScene);
+            primaryStage.setFullScreenExitHint("");
             primaryStage.setFullScreen(true);
         });
 
@@ -61,7 +61,7 @@ public class Menu {
         
         VBox mainButtons = new VBox(20);
         mainButtons.getChildren().addAll(startGameButton, multiplayerGameButton, optionsButton);
-        mainButtons.setAlignment(Pos.CENTER);
+        mainButtons.setAlignment(Pos.TOP_CENTER);
 
         AnchorPane root = new AnchorPane();
         root.getChildren().addAll(mainButtons, quitButton);

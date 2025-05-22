@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Arrays;
 
 public class IA {
     private final Random random = new Random();
@@ -23,8 +26,86 @@ public class IA {
         {1,  1,  1,  1,  1,  1,  1,  1}
     };
 
+    private static class OpeningMove {
+        final int fromX, fromY, toX, toY;
+        final String name;
+        
+        OpeningMove(int fromX, int fromY, int toX, int toY, String name) {
+            this.fromX = fromX;
+            this.fromY = fromY;
+            this.toX = toX;
+            this.toY = toY;
+            this.name = name;
+        }
+    }
+
+    private static final List<List<OpeningMove>> WHITE_OPENINGS = new ArrayList<>();
+    private static final Map<String, List<OpeningMove>> BLACK_DEFENSES = new HashMap<>();
+
+    static {
+        // Make a opening for white
+        // King Pawn (e4)
+        List<OpeningMove> kingsOpening = Arrays.asList(
+            new OpeningMove(6, 4, 4, 4, "King's Pawn") // e4
+        );
+        
+        // Queen pawn(d4)
+        List<OpeningMove> queensOpening = Arrays.asList(
+            new OpeningMove(6, 3, 4, 3, "Queen's Pawn") // d4
+        );
+        
+        // Reti Opening (Nf3)
+        List<OpeningMove> retiOpening = Arrays.asList(
+            new OpeningMove(7, 6, 5, 5, "Reti Opening") // Nf3
+        );
+        
+        WHITE_OPENINGS.add(kingsOpening);
+        WHITE_OPENINGS.add(queensOpening);
+        WHITE_OPENINGS.add(retiOpening);
+        
+        // Initialize black defenses
+        // Sicilian Defense (against e4)
+        BLACK_DEFENSES.put("e4", Arrays.asList(
+            new OpeningMove(1, 2, 3, 2, "Sicilian Defense") // c5
+        ));
+        
+        // Indian Defense (against d4)
+        BLACK_DEFENSES.put("d4", Arrays.asList(
+            new OpeningMove(1, 6, 3, 6, "Indian Defense"), // Nf6
+            new OpeningMove(1, 5, 3, 5, "King's Indian") // e6
+        ));
+    }
+
+    private int moveCount = 0;
+    private String currentOpening = null;
+
     public Move makeMove(Game game, int player) {
+        moveCount++;
         int[][] board = game.getBoard();
+        
+        // Early game phase is thghe first 10 moves
+        if (moveCount <= 10) {
+            Move bookMove = null;
+            
+            if (player == 1) {
+                if (moveCount == 1) {
+                    // Choose a random opening for white first move
+                    List<OpeningMove> opening = WHITE_OPENINGS.get(random.nextInt(WHITE_OPENINGS.size()));
+                    OpeningMove firstMove = opening.get(0);
+                    currentOpening = firstMove.name;
+                    return new Move(firstMove.fromX, firstMove.fromY, firstMove.toX, firstMove.toY);
+                }
+                bookMove = getNextOpeningMove(game, currentOpening);
+            } else {
+                bookMove = getDefensiveMove(game);
+            }
+            
+            if (bookMove != null) {
+                return bookMove;
+            }
+        }
+        
+        // If no move is available already, then use the existing evaluation logic
         List<Move> possibleMoves = getAllPossibleMoves(game, board, player);
         
         if (!possibleMoves.isEmpty()) {
@@ -32,14 +113,15 @@ public class IA {
             
             for (Move move : possibleMoves) {
                 int score = evaluateMove(game, move);
-                // Only moves that has a good score and avoid pointless moves
-                // that don't change the position of the pieces
+                if (player == -1) {
+                    score += evaluateDefensiveValue(game, move);
+                }
                 if (score > 0) {
                     scoredMoves.add(new ScoredMove(move, score));
                 }
             }
             
-            // If no positive moves were found, make analise of the position to moves
+            // If no good moves found then make analise of the position to move again
             if (scoredMoves.isEmpty()) {
                 for (Move move : possibleMoves) {
                     int positionScore = analizePosition(game, move);
@@ -162,8 +244,16 @@ public class IA {
         // Count empty squares in the rook's lines
         int emptySquaresInLine = countEmptySquaresInLine(board, move.toY);
         
-        // Early game: prioritize safety and development
+        // Early game should be safety and development
         if (!isEndgame) {
+
+            if (isStartingPosition(move.fromX, move.fromY, piece)) {
+                // Only allow rook movemnt if there's a clear purpose
+                if (emptySquaresInLine < 5) {
+                    score -= 100;
+                }
+            }
+            
             // Check for diagonal threats to the rook
             boolean isDiagonallyThreatened = false;
             int[][] diagonalDirections = {{1,1}, {1,-1}, {-1,1}, {-1,-1}};
@@ -185,30 +275,14 @@ public class IA {
                 }
             }
             
-            //penalize moving to diagonally threatened squares
+            // Penalize moving to threatened squares
             if (isDiagonallyThreatened) {
                 score -= 80;
             }
             
-            // More points for staying protected
+            // Points for staying protected
             if (isSquareProtected(board, move.toX, move.toY, Integer.signum(piece))) {
                 score += 30;
-            }
-            
-            // More points for moving out
-            if (move.fromX == (piece > 0 ? 7 : 0) && 
-                !isSquareUnderAttack(board, move.toX, move.toY, -Integer.signum(piece)) &&
-                isSquareProtected(board, move.toX, move.toY, Integer.signum(piece))) {
-                score += 25;
-            }
-            
-            // Points for controlling open lines
-            if (emptySquaresInLine >= 5) {
-                score += 25;
-                if (!isLineControlledByEnemyRook(board, move.toY, piece)) {
-                    // Extra
-                    score += 20;
-                }
             }
         }
         
@@ -220,30 +294,33 @@ public class IA {
         boolean isEndgame = isEndgame(board);
         
         if (!isEndgame) {
-            // Prefer corners and edges
+            // Strongly discourage early king moves unless castling
+            if (isStartingPosition(move.fromX, move.fromY, piece)) {
+                if (Math.abs(move.fromY - move.toY) == 2) { // Castling move
+                    score += 100;
+                } else {
+                    score -= 150; // Heavy penalty for non-castling early king moves
+                }
+            }
+            
+            // Prefer corners and edges in early game
             if (isCorner(move.toX, move.toY)) {
                 score += 30;
             } else if (isEdge(move.toX, move.toY)) {
                 score += 20;
             }
             
-            // Penality for moving to center squares
+            // Penalize moving to center squares early
             if (isCenterSquare(move.toX, move.toY)) {
                 score -= 40;
             }
             
-            // friendly pieces nearby = (protection) so IA get bonus kkk
+            // Consider king safety
             score += evaluateKingShelter(board, move, piece);
-            
-            // Bonus for castling
-            if (isStartingPosition(move.fromX, move.fromY, piece)) {
-                if (move.toY == 6 || move.toY == 2) {
-                    score += 50;
-                }
-            }
         } else {
+            // In endgame, king should be more active
             if (isEdge(move.toX, move.toY)) {
-                score += 10;
+                score += 10; // Less penalty for edge squares in endgame
             }
         }
         
@@ -295,49 +372,6 @@ public class IA {
         return x >= 0 && x < 8 && y >= 0 && y < 8;
     }
 
-    private int verifyRookPosition(int[][] board, Move move, int piece) {
-        int score = 0;
-        boolean isEndgame = isEndgame(board);
-        
-        // Count empty squares in the rook line of attack
-        int emptySquaresInFile = countEmptySquaresInLine(board, move.toY);
-        
-        // Count empty squares
-        int emptySquaresInRank = countEmptySquaresInRank(board, move.toX);
-        
-        // more points for controlling open lines
-        if (emptySquaresInFile >= 5) {
-            score += 25;
-            
-            // Extra if it's the only rook controlling this line
-            if (!isLineControlledByEnemyRook(board, move.toY, piece)) {
-                score += 15;
-            }
-        }
-        
-        // Endgame
-        if (isEndgame) {
-            // Bonus for being on the 7th rank
-            int seventhRank = (piece > 0) ? 1 : 6;
-            if (move.toX == seventhRank) {
-                score += 30;
-            }
-            
-            // Bonus for having many squares to move to
-            int mobilityScore = (emptySquaresInFile + emptySquaresInRank) * 3;
-            score += mobilityScore;
-            
-            // Bonus for being closer to enemy king in endgame
-            int[] enemyKingPos = findEnemyKing(board, piece);
-            if (enemyKingPos != null) {
-                int distance = Math.abs(move.toX - enemyKingPos[0]) + Math.abs(move.toY - enemyKingPos[1]);
-                score += (14 - distance) * 2;
-            }
-        }
-        
-        return score;
-    }
-
     private boolean isEndgame(int[][] board) {
         int pieceCount = 0;
         for (int i = 0; i < board.length; i++) {
@@ -360,26 +394,6 @@ public class IA {
             }
         }
         return count;
-    }
-
-    private int countEmptySquaresInRank(int[][] board, int rank) {
-        int count = 0;
-        for (int j = 0; j < board[rank].length; j++) {
-            if (board[rank][j] == 0) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private boolean isLineControlledByEnemyRook(int[][] board, int file, int piece) {
-        int enemyRook = (piece > 0) ? -2 : 2;
-        for (int i = 0; i < board.length; i++) {
-            if (board[i][file] == enemyRook) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private int[] findEnemyKing(int[][] board, int piece) {
@@ -849,5 +863,134 @@ public class IA {
             this.toX = toX;
             this.toY = toY;
         }
+    }
+
+    private Move getNextOpeningMove(Game game, String openingName) {
+        if (openingName == null) return null;
+        
+        int[][] board = game.getBoard();
+        
+        // For King's Pawn Opening
+        if (openingName.equals("King's Pawn")) {
+            // Develop knight to f3
+            if (board[7][6] == 3 && board[5][5] == 0) {
+                return new Move(7, 6, 5, 5);
+            }
+            // Develop bishop to c4
+            if (board[7][5] == 4 && board[4][2] == 0) {
+                return new Move(7, 5, 4, 2);
+            }
+        }
+        
+        // For Queen's Pawn Opening
+        if (openingName.equals("Queen's Pawn")) {
+            // Develop knight to f3
+            if (board[7][6] == 3 && board[5][5] == 0) {
+                return new Move(7, 6, 5, 5);
+            }
+            // Develop bishop to f4
+            if (board[7][5] == 4 && board[4][5] == 0) {
+                return new Move(7, 5, 4, 5);
+            }
+        }
+        
+    
+        if (openingName.equals("Reti Opening")) {
+    
+            if (board[6][6] == 1 && board[5][6] == 0) {
+                return new Move(6, 6, 5, 6);
+            }
+            if (board[7][5] == 4 && board[6][6] == 0) {
+                return new Move(7, 5, 6, 6);
+            }
+        }
+        
+        return null;
+    }
+
+    private Move getDefensiveMove(Game game) {
+        int[][] board = game.getBoard();
+        int lastMoveToY = game.getLastMoveToY();
+        
+        // Respond to e4
+        if (game.getLastMovePiece() == 1 && lastMoveToY == 4 && board[4][4] == 1) {
+            //Sicilian Defense
+            if (board[1][2] == -1 && board[3][2] == 0) {
+                return new Move(1, 2, 3, 2);
+            }
+        }
+        
+        // Response to d4
+        if (game.getLastMovePiece() == 1 && lastMoveToY == 3 && board[4][3] == 1) {
+            // Indian Defense
+            if (board[1][6] == -3 && board[3][6] == 0) {
+                return new Move(1, 6, 3, 6);
+            }
+            
+            if (board[1][5] == -1 && board[3][5] == 0) {
+                return new Move(1, 5, 3, 5);
+            }
+        }
+        
+        return null;
+    }
+
+    private int evaluateDefensiveValue(Game game, Move move) {
+        int[][] board = game.getBoard();
+        int score = 0;
+        
+        // Protect king's position
+        int[] kingPos = findOurKing(board, -1);
+        if (kingPos != null) {
+            // Bonus for moves that protect the king
+            if (isDefendingKing(board, move, kingPos)) {
+                score += 50;
+            }
+            
+            // Bonus for castling 
+            if (Math.abs(board[move.fromX][move.fromY]) == 6 && 
+                Math.abs(move.fromY - move.toY) == 2) {
+                score += 100;
+            }
+        }
+        
+        // Control center squares
+        if ((move.toX >= 3 && move.toX <= 4) && 
+            (move.toY >= 3 && move.toY <= 4)) {
+            score += 30;
+        }
+        
+        // Protect important pieces
+        if (isProtectingImportantPiece(board, move)) {
+            score += 40;
+        }
+        
+        return score;
+    }
+
+    private boolean isDefendingKing(int[][] board, Move move, int[] kingPos) {
+        // Check if move is within 2 squares of king
+        return Math.abs(move.toX - kingPos[0]) <= 2 && Math.abs(move.toY - kingPos[1]) <= 2;
+    }
+
+    private boolean isProtectingImportantPiece(int[][] board, Move move) {
+        
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) continue;
+                
+                int newX = move.toX + dx;
+                int newY = move.toY + dy;
+                
+                if (isInBounds(newX, newY)) {
+                    int piece = board[newX][newY];
+                    // Important pieces are queen (5), rook (2), bishop (4)
+                    if (Integer.signum(piece) == Integer.signum(board[move.fromX][move.fromY]) && (Math.abs(piece) == 5 || Math.abs(piece) == 2 || Math.abs(piece) == 4)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

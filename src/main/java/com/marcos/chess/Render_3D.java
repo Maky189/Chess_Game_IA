@@ -255,7 +255,7 @@ public class Render_3D implements Renderer {
 
         private void setupLighting() {
             // HDR setup
-            TextureKey key = new TextureKey("assets/board/map2.hdr", true);
+            TextureKey key = new TextureKey("assets/board/map1.hdr", true);
             key.setGenerateMips(true);
             Texture envMap = assetManager.loadTexture(key);
             envMap.setWrap(WrapMode.EdgeClamp);
@@ -804,7 +804,7 @@ public class Render_3D implements Renderer {
     }
 
     @Override
-    public void cleanup() {
+    public void clean() {
         if (chessApp != null) {
             chessApp.stop(true);
         }

@@ -727,7 +727,7 @@ public class Test3D implements Renderer {
     }
 
     @Override
-    public void cleanup() {
+    public void clean() {
         if (chessApp != null) {
             chessApp.stop(true);
         }

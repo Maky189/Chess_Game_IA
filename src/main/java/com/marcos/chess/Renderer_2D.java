@@ -28,7 +28,7 @@ public class Renderer_2D implements Renderer {
     private DragHandler handler;
     private Pane pieceLayer;
     private Stage stage;
-    private String profileName; // Add this field at the class level
+    private String profileName;
 
     public Renderer_2D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
@@ -95,7 +95,7 @@ public class Renderer_2D implements Renderer {
         // F3 to change modes 3D to 2D and vice versa
         scene.setOnKeyPressed(e -> {
             if(e.getCode() == KeyCode.F3) {
-                cleanup();
+                clean();
                 Render_3D render_3D = new Render_3D(windowsWidth, windowsHeight);
                 render_3D.initialize();
                 render_3D.createGameScene(windowsWidth, windowsHeight, isMultiplayer);
@@ -215,7 +215,7 @@ public class Renderer_2D implements Renderer {
     }
 
     @Override
-    public void cleanup() {
+    public void clean() {
         if (pieceLayer != null) {
             pieceLayer.getChildren().clear();
         }
