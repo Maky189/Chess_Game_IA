@@ -3,6 +3,7 @@ package com.marcos.chess;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Slider;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -35,72 +36,53 @@ public class OptionsMenu {
         title.setFill(Color.WHITE);
         title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
 
-        // 3D Mode checkbox
+        // 3D Mode Checkbox
         CheckBox enable3DMode = new CheckBox("Enable 3D Mode");
-        enable3DMode.setStyle("-fx-text-fill: white; " +
-                            "-fx-font-family: 'Verdana'; " +
-                            "-fx-font-size: 22px; " +
-                            "-fx-font-weight: bold;");
+        enable3DMode.setStyle(createCheckboxStyle());
         enable3DMode.setSelected(GameOptions.getInstance().is3DModeEnabled());
-        
-        // Color selection toggle
-        HBox colorSelection = new HBox(20);
-        colorSelection.setAlignment(Pos.CENTER);
-
-        Text colorLabel = new Text("Play as:");
-        colorLabel.setFill(Color.WHITE);
-        colorLabel.setFont(Font.font("Arial", FontWeight.BOLD, 22));
-
-        ColorToggleSwitch colorToggle = new ColorToggleSwitch(GameOptions.getInstance().isPlayingAsWhite());
-                
-        Text whiteText = new Text("White");
-        Text blackText = new Text("Black");
-        whiteText.setFill(Color.WHITE);
-        blackText.setFill(Color.WHITE);
-        whiteText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        blackText.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        
-        // Make the texts clickable as well
-        whiteText.setOnMouseClicked(e -> {
-            colorToggle.setWhite(true);
-            GameOptions.getInstance().setPlayAsWhite(true);
-        });
-
-        blackText.setOnMouseClicked(e -> {
-            colorToggle.setWhite(false);
-            GameOptions.getInstance().setPlayAsWhite(false);
-        });
-
-        // Add a mouse hover effect
-        whiteText.setOnMouseEntered(e -> whiteText.setFill(Color.LIGHTGRAY));
-        whiteText.setOnMouseExited(e -> whiteText.setFill(Color.WHITE));
-        blackText.setOnMouseEntered(e -> blackText.setFill(Color.LIGHTGRAY));
-        blackText.setOnMouseExited(e -> blackText.setFill(Color.WHITE));
-
-        colorSelection.getChildren().addAll(colorLabel, whiteText, colorToggle, blackText);
-
-        // Add listeners
         enable3DMode.setOnAction(e -> menu.set3DMode(enable3DMode.isSelected()));
-        colorToggle.setOnMouseClicked(e -> {
-            colorToggle.toggle();
-            GameOptions.getInstance().setPlayAsWhite(colorToggle.isWhite());
-        });
 
-        // Test Environment button
+        // Mute Checkbox
+        CheckBox muteAudio = new CheckBox("Mute Audio");
+        muteAudio.setStyle(createCheckboxStyle());
+        muteAudio.setOnAction(e -> Audio.getInstance(null).toggleMute());
+
+        // Volume Slider
+        Text volumeLabel = new Text("Volume");
+        volumeLabel.setStyle("-fx-fill: white; -fx-font-family: 'Verdana'; -fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Slider volumeSlider = new Slider(0, 1, 1);
+        volumeSlider.setStyle(createSliderStyle());
+        volumeSlider.setPrefWidth(200);
+        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> 
+            Audio.getInstance(null).setVolume(newVal.floatValue())
+        );
+
+        HBox volumeControl = new HBox(20);
+        volumeControl.setAlignment(Pos.CENTER);
+        volumeControl.getChildren().addAll(volumeLabel, volumeSlider);
+        volumeControl.setStyle("-fx-background-color: transparent;");
+
         StackPane testEnvironmentButton = createButton("3D Test Environment", Color.PURPLE, Color.DARKVIOLET);
         testEnvironmentButton.setOnMouseClicked(e -> {
             Test3D test3D = new Test3D(windowsWidth, windowsHeight);
             test3D.initialize();
-            stage.hide(); // Hide the current window
+            stage.hide();
             test3D.createGameScene(windowsWidth, windowsHeight, false);
         });
 
         StackPane backButton = menu.createButton("Back", Color.GRAY, Color.DARKGRAY);
         backButton.setOnMouseClicked(e -> menu.showMenu());
 
-        VBox optionsBox = new VBox(30);
+        VBox optionsBox = new VBox(20);
         optionsBox.setAlignment(Pos.CENTER);
-        optionsBox.getChildren().addAll(enable3DMode, colorSelection, testEnvironmentButton, backButton);
+        optionsBox.getChildren().addAll(
+            enable3DMode,
+            muteAudio,
+            volumeControl,
+            testEnvironmentButton,
+            backButton
+        );
 
         AnchorPane.setTopAnchor(title, 50.0);
         AnchorPane.setLeftAnchor(title, 50.0);
@@ -111,6 +93,25 @@ public class OptionsMenu {
         root.getChildren().addAll(title, optionsBox);
 
         return new Scene(root, windowsWidth, windowsHeight);
+    }
+
+    private String createCheckboxStyle() {
+        return "-fx-text-fill: black; " +
+               "-fx-font-family: 'Verdana'; " +
+               "-fx-font-size: 22px; " +
+               "-fx-font-weight: bold; " +
+               "-fx-background-color: rgba(255, 255, 255, 0.8); " +
+               "-fx-padding: 5 10 5 10; " +
+               "-fx-background-radius: 5;";
+    }
+
+    private String createSliderStyle() {
+        return "-fx-background-color: transparent;" +
+               "-fx-control-inner-background: white;" +
+               "-fx-track-background: transparent;" +
+               "-fx-track-height: 8px;" +
+               "-fx-thumb-height: 24px;" +
+               "-fx-thumb-width: 24px;";
     }
 
     private StackPane createButton(String text, Color defaultColor, Color hoverColor) {
