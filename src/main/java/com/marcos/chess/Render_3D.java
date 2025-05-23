@@ -17,6 +17,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
+import com.jme3.system.Timer;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
 import com.jme3.texture.plugins.HDRLoader;
@@ -30,6 +31,7 @@ import com.jme3.math.Ray;
 import com.jme3.material.RenderState;
 import com.jme3.scene.Spatial;
 import javafx.scene.Scene;
+import com.jme3.system.Timer;
 
 import java.util.List;
 
@@ -104,6 +106,9 @@ public class Render_3D implements Renderer {
         private int currentPass = 0;
         private final float INTRO_DURATION = 10f;
         private final int TOTAL_PASSES = 3;
+
+        // Add this field to your ChessGame class
+        private Material threatenedSquareMaterial;
 
         public ChessGame(Game game, boolean isMultiplayer) {
             super();
@@ -241,6 +246,12 @@ public class Render_3D implements Renderer {
             highlightMaterial.setColor("Ambient", new ColorRGBA(0, 0, 0.5f, 0.5f));
             highlightMaterial.setBoolean("UseMaterialColors", true);
             highlightMaterial.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+
+            // Initialize threatened square material
+            threatenedSquareMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
+            threatenedSquareMaterial.setColor("BaseColor", new ColorRGBA(0.8f, 0.2f, 0.2f, 1.0f));
+            threatenedSquareMaterial.setFloat("Metallic", 0.0f);
+            threatenedSquareMaterial.setFloat("Roughness", 0.6f);
         }
 
         private void setupCamera() {
@@ -542,6 +553,47 @@ public class Render_3D implements Renderer {
                     }
                 }
 
+                // Check if the king is threatened
+                int[] whiteKingPos = findKingPosition(game.getBoard(), 6);
+                int[] blackKingPos = findKingPosition(game.getBoard(), -6);
+
+                
+                if (whiteKingPos != null && game.isKingThreatened(game.getBoard(), whiteKingPos[0], whiteKingPos[1], -1)) {
+                    Geometry square = findSquare(whiteKingPos[0], whiteKingPos[1]);
+                    if (square != null) {
+                        square.setMaterial(threatenedSquareMaterial);
+                        
+                        new java.util.Timer().schedule(
+                            new java.util.TimerTask() {
+                                @Override
+                                public void run() {
+                                    boolean isWhiteSquare = ((int) square.getUserData("row") + (int) square.getUserData("col")) % 2 == 0;
+                                    square.setMaterial(isWhiteSquare ? whiteMaterial : blackMaterial);
+                                }
+                            },
+                            1000 
+                        );
+                    }
+                }
+
+                if (blackKingPos != null && game.isKingThreatened(game.getBoard(), blackKingPos[0], blackKingPos[1], 1)) {
+                    Geometry square = findSquare(blackKingPos[0], blackKingPos[1]);
+                    if (square != null) {
+                        square.setMaterial(threatenedSquareMaterial);
+                        // Reset after 1 second
+                        new java.util.Timer().schedule(
+                            new java.util.TimerTask() {
+                                @Override
+                                public void run() {
+                                    boolean isWhiteSquare = ((int) square.getUserData("row") + (int) square.getUserData("col")) % 2 == 0;
+                                    square.setMaterial(isWhiteSquare ? whiteMaterial : blackMaterial);
+                                }
+                            },
+                            1000 
+                        );
+                    }
+                }
+
                 changePlayer();
                 if (!isMultiplayer && game.getCurrentPlayer() == -1) {
                     handleAIMove();
@@ -818,6 +870,21 @@ public class Render_3D implements Renderer {
             //Could not find a way to make the UI in JmonkeyEngine yet. But I will implement it later.
             //Manual promotion will come up one day.
             return;
+        }
+
+        // Add this helper method to find a square geometry
+        private Geometry findSquare(int row, int col) {
+            for (Spatial child : boardNode.getChildren()) {
+                if (child.getName() != null && child.getName().startsWith("square_")) {
+                    Geometry square = (Geometry) child;
+                    int squareRow = (int) square.getUserData("row");
+                    int squareCol = (int) square.getUserData("col");
+                    if (squareRow == row && squareCol == col) {
+                        return square;
+                    }
+                }
+            }
+            return null;
         }
     }
 
