@@ -523,6 +523,12 @@ public class Render_3D implements Renderer {
                     }
                 }
 
+                // Check for check
+                int[] enemyKingPos = findKingPosition(game.getBoard(), -game.getCurrentPlayer() * 6);
+                if (enemyKingPos != null && game.isKingThreatened(game.getBoard(), enemyKingPos[0], enemyKingPos[1], game.getCurrentPlayer())) {
+                    Audio.getInstance(assetManager).playCheckSound();
+                }
+
                 // Promotion pawn to queen
                 if (Math.abs(movingPiece) == 1 && (toX == 0 || toX == 7)) {
                     int queenValue = 5 * Integer.signum(movingPiece);
@@ -543,6 +549,18 @@ public class Render_3D implements Renderer {
             });
 
             pieceNode.addControl(kingAnim);
+        }
+
+        // Find king's position
+        private int[] findKingPosition(int[][] board, int kingValue) {
+            for (int i = 0; i < board.length; i++) {
+                for (int j = 0; j < board[i].length; j++) {
+                    if (board[i][j] == kingValue) {
+                        return new int[]{i, j};
+                    }
+                }
+            }
+            return null;
         }
 
         private void changePlayer() {

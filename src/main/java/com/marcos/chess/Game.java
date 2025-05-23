@@ -184,7 +184,7 @@ public class Game {
         return null;
     }
 
-    private boolean isKingThreatened(int[][] board, int kingX, int kingY, int opponentSign) {
+    public boolean isKingThreatened(int[][] board, int kingX, int kingY, int opponentSign) {
         // Add parameter to prevent infinite recursion
         return isKingThreatened(board, kingX, kingY, opponentSign, false);
     }

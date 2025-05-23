@@ -21,10 +21,12 @@ public class Audio {
     private AudioNode checkSound;
     private AudioNode castleSound;
     private AudioNode moveSound;
+    private List<String> remainingTracks;
     
     private Audio(AssetManager assetManager) {
         this.assetManager = assetManager;
         this.musicTracks = new ArrayList<>();
+        this.remainingTracks = new ArrayList<>();
         loadMusicTracks();
         loadVFXSounds();
     }
@@ -42,6 +44,23 @@ public class Audio {
         musicTracks.add("Sounds/Music/music3.ogg");
         musicTracks.add("Sounds/Music/music4.ogg");
         musicTracks.add("Sounds/Music/music5.ogg");
+        
+        resetRemainingTracks();
+    }
+
+    private void resetRemainingTracks() {
+        remainingTracks = new ArrayList<>(musicTracks);
+    }
+
+    private String getNextRandomTrack() {
+        if (remainingTracks.isEmpty()) {
+            resetRemainingTracks();
+        }
+        
+        int index = random.nextInt(remainingTracks.size());
+        String track = remainingTracks.get(index);
+        remainingTracks.remove(index);
+        return track;
     }
 
     private void loadVFXSounds() {
@@ -79,30 +98,31 @@ public class Audio {
                 currentMusic.stop();
             }
 
-            String randomTrack = musicTracks.get(random.nextInt(musicTracks.size()));
-
-            currentMusic = new AudioNode(assetManager, randomTrack, DataType.Stream);
+            String nextTrack = getNextRandomTrack();
+            currentMusic = new AudioNode(assetManager, nextTrack, DataType.Stream);
             currentMusic.setLooping(false);
             currentMusic.setVolume(isMuted ? 0 : volume);
             currentMusic.setPositional(false);
             currentMusic.play();
 
-
+            // Monitor the current track and automatically play next when finished
             new Thread(() -> {
-                while (currentMusic != null && currentMusic.getStatus() == Status.Playing) {
+                while (currentMusic != null) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(500);
+                        if (currentMusic != null && currentMusic.getStatus() != Status.Playing) {
+                            playRandomMusic();
+                            break;
+                        }
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         return;
                     }
-                }
-                if (currentMusic != null) {
-                    playRandomMusic();
                 }
             }).start();
 
         } catch (Exception e) {
-            return;
+            System.err.println("Error playing music: " + e.getMessage());
         }
     }
 
