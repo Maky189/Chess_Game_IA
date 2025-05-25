@@ -18,6 +18,9 @@ import javafx.geometry.Pos;
 import javafx.geometry.Insets;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
+import com.marcos.chess.networking.GameSession;
+
 import javafx.application.Platform;
 import javafx.scene.Node;
 
@@ -29,6 +32,7 @@ public class Renderer_2D implements Renderer {
     private Pane pieceLayer;
     private Stage stage;
     private String profileName;
+    private GameSession gameSession;
 
     public Renderer_2D(int windowsWidth, int windowsHeight) {
         this.windowsWidth = windowsWidth;
@@ -45,6 +49,10 @@ public class Renderer_2D implements Renderer {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    public void setGameSession(GameSession session) {
+        this.gameSession = session;
     }
 
     @Override
@@ -64,6 +72,9 @@ public class Renderer_2D implements Renderer {
         board.drawBoard(canvas.getGraphicsContext2D(), game.getBoard());
 
         handler = new DragHandler(board, game, canvas, pieceLayer, isMultiplayer);
+        if (gameSession != null) {
+            handler.setGameSession(gameSession);
+        }
 
         canvas.setOnMousePressed(handler::MousePressed);
         canvas.setOnMouseReleased(handler::MouseReleased);

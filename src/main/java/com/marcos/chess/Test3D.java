@@ -153,7 +153,7 @@ public class Test3D implements Renderer {
         }
 
         private void setupLighting() {
-            TextureKey key = new TextureKey("assets/board/map5.hdr", true);
+            TextureKey key = new TextureKey("assets/board/map1.hdr", true);
             key.setGenerateMips(true);
             Texture envMap = assetManager.loadTexture(key);
             envMap.setWrap(WrapMode.EdgeClamp);
@@ -590,12 +590,9 @@ public class Test3D implements Renderer {
             Spatial tableModel = assetManager.loadModel("assets/board/table.j3o");
             tableModel.setMaterial(tableMaterial);
             
-            // Scale the table to be larger than the board
-            float tableScale = 5f; // Adjust this value as needed
+            float tableScale = 5f;
             tableModel.setLocalScale(tableScale);
-            
-            // Position the table slightly below where the board will be
-            tableModel.setLocalTranslation(0, -0.5f, 0); // Adjust Y value as needed
+            tableModel.setLocalTranslation(0, -0.5f, 0);
             
             // Create the chess board node
             Node boardNode = new Node("chessBoard");
@@ -640,7 +637,7 @@ public class Test3D implements Renderer {
             mainNode.attachChild(boardNode);
             
             // Adjust the entire scene position if needed
-            mainNode.setLocalTranslation(0, 0.5f, 0); // Lift everything up slightly
+            mainNode.setLocalTranslation(0, 0.5f, 0);
             
             return mainNode;
         }

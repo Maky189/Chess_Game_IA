@@ -7,6 +7,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 import java.util.List;
+
+import com.marcos.chess.networking.GameSession;
+
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
@@ -38,6 +41,7 @@ public class DragHandler {
     private double animationProgress = 0;
     private AnimationTimer animator = null;
     private static final double DELAY = 0.5;
+    private GameSession gameSession;
 
     public DragHandler(Board board, Game game, Canvas canvas, Pane pieceLayer, boolean isMultiplayer) {
         this.board = board;
@@ -48,6 +52,12 @@ public class DragHandler {
         this.isMultiplayer = isMultiplayer;
     }
 
+    public void setGameSession(GameSession session) {
+        this.gameSession = session;
+        if (gameSession != null) {
+            gameSession.listenForOpponentMove(this);
+        }
+    }
 
     private void cleanupAnimation() {
         if (animator != null) {
@@ -93,17 +103,18 @@ public class DragHandler {
                 isAnimating = true;
                 int piece = game.getBoard()[aiMove.fromX][aiMove.fromY];
 
-                // Determine if this is an en passant capture BEFORE making any moves
-                boolean isEnPassant = game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
-                int capturedPawnX = game.getLastMoveToX();
-                int capturedPawnY = game.getLastMoveToY();
+                // Check if this is a castling move
+                boolean isCastling = Math.abs(piece) == 6 && Math.abs(aiMove.fromY - aiMove.toY) == 2;
 
-                // Clear the source square
                 game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
 
-                // If it's an en passant capture, remove the captured pawn immediately
-                if (isEnPassant) {
-                    game.getBoard()[capturedPawnX][capturedPawnY] = 0;
+                // If castling, handle rook movement
+                if (isCastling) {
+                    if (aiMove.toY > aiMove.fromY) {
+                        game.performKingsideCastle(aiMove.toX);
+                    } else {
+                        game.performQueensideCastle(aiMove.toX);
+                    }
                 }
 
                 redraw();
@@ -138,7 +149,7 @@ public class DragHandler {
                     // Place the piece in its final position
                     game.getBoard()[aiMove.toX][aiMove.toY] = piece;
 
-                    // Update the last move info
+                    // Update the last move
                     game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
 
                     redraw();
@@ -167,7 +178,7 @@ public class DragHandler {
                 boolean isCastling = game.isCastlingMove(fromX, fromY, pos[0], pos[1]);
                 boolean isEnPassant = game.isEnPassantCapture(fromX, fromY, pos[0], pos[1]);
 
-                // Make the basic move
+                // Then make the basic move
                 game.getBoard()[pos[0]][pos[1]] = selectedPiece;
                 game.getBoard()[fromX][fromY] = 0;
 
@@ -202,6 +213,8 @@ public class DragHandler {
 
                 if (!isMultiplayer) {
                     handleAIMove();
+                } else if (gameSession != null) {
+                    gameSession.makeMove(fromX, fromY, pos[0], pos[1]);
                 }
             }
         }
@@ -326,5 +339,10 @@ public class DragHandler {
         Scene dialogScene = new Scene(piecesBox);
         menu.setScene(dialogScene);
         menu.show();
+    }
+
+
+    public void redrawBoard() {
+        redraw();
     }
 }

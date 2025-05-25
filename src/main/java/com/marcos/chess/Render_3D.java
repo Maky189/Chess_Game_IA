@@ -38,6 +38,7 @@ import java.util.List;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.renderer.ViewPort;
 import com.jme3.math.FastMath;
+import javafx.scene.paint.Color;
 
 public class Render_3D implements Renderer {
     private final int windowsWidth;
@@ -249,7 +250,7 @@ public class Render_3D implements Renderer {
 
             // Initialize threatened square material
             threatenedSquareMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
-            threatenedSquareMaterial.setColor("BaseColor", new ColorRGBA(0.8f, 0.2f, 0.2f, 1.0f));
+            threatenedSquareMaterial.setColor("BaseColor", ColorRGBA.Red);
             threatenedSquareMaterial.setFloat("Metallic", 0.0f);
             threatenedSquareMaterial.setFloat("Roughness", 0.6f);
         }
@@ -634,19 +635,45 @@ public class Render_3D implements Renderer {
                     float liftHeight = 1.0f;
                     float moveDuration = 0.5f;
 
-                    AnimationControl anim = new AnimationControl(pieceToMove, new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)), new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)), liftHeight, moveDuration, () -> {
-                        game.getBoard()[aiMove.toX][aiMove.toY] = piece;
-                        game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+                    // Check if this is a castling move
+                    boolean isCastling = Math.abs(piece) == 6 && Math.abs(aiMove.fromY - aiMove.toY) == 2;
+                    
+                    // Handle castling
+                    if (isCastling) {
+                        boolean isKingside = aiMove.toY > aiMove.fromY;
+                        int rookFromCol = isKingside ? 7 : 0;
+                        int rookToCol = isKingside ? 5 : 3;
 
-                        if (game.isEnPassantCapture(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY)) {
-                            game.performEnPassantCapture(aiMove.toX, aiMove.toY);
+                        Node rookNode = findPieceNodeAt(aiMove.fromX, rookFromCol);
+                        if (rookNode != null) {
+                            AnimationControl rookAnim = new AnimationControl(rookNode,
+                                    new Vector3f((rookFromCol - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
+                                    new Vector3f((rookToCol - 3.5f), 0.2f, (aiMove.fromX - 3.5f)),
+                                    liftHeight, moveDuration, null);
+                            rookNode.addControl(rookAnim);
                         }
-                        game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+                    }
 
-                        changePlayer();
+                    AnimationControl kingAnim = new AnimationControl(pieceToMove, 
+                        new Vector3f((aiMove.fromY - 3.5f), 0.2f, (aiMove.fromX - 3.5f)), 
+                        new Vector3f((aiMove.toY - 3.5f), 0.2f, (aiMove.toX - 3.5f)), 
+                        liftHeight, moveDuration, () -> {
+                            game.getBoard()[aiMove.toX][aiMove.toY] = piece;
+                            game.getBoard()[aiMove.fromX][aiMove.fromY] = 0;
+
+                            if (isCastling) {
+                                if (aiMove.toY > aiMove.fromY) {
+                                    game.performKingsideCastle(aiMove.toX);
+                                } else {
+                                    game.performQueensideCastle(aiMove.toX);
+                                }
+                            }
+
+                            game.updateLastMove(aiMove.fromX, aiMove.fromY, aiMove.toX, aiMove.toY);
+                            changePlayer();
                     });
 
-                    pieceToMove.addControl(anim);
+                    pieceToMove.addControl(kingAnim);
                 }
             }
         }

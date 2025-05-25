@@ -55,7 +55,6 @@ public class GameSaver {
                 return game;
             }
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
             return null;
         }
     }

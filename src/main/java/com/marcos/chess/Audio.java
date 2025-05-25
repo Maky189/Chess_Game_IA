@@ -105,7 +105,7 @@ public class Audio {
             currentMusic.setPositional(false);
             currentMusic.play();
 
-            // Monitor the current track and automatically play next when finished
+            // Play the next music
             new Thread(() -> {
                 while (currentMusic != null) {
                     try {

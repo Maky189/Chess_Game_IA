@@ -185,7 +185,7 @@ public class Game {
     }
 
     public boolean isKingThreatened(int[][] board, int kingX, int kingY, int opponentSign) {
-        // Add parameter to prevent infinite recursion
+        // prevernt stackoverflow beacuse of recursio on the IA
         return isKingThreatened(board, kingX, kingY, opponentSign, false);
     }
 
@@ -193,9 +193,7 @@ public class Game {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board[i].length; j++) {
                 if (board[i][j] != 0 && Integer.signum(board[i][j]) == opponentSign) {
-                    // For castling checks, we only need to check direct attacks
                     if (isCastlingCheck) {
-                        // Simple check for direct attacks without recursion
                         List<int[]> directMoves = calculateDirectAttacks(board, i, j);
                         for (int[] move : directMoves) {
                             if (move[0] == kingX && move[1] == kingY) {
@@ -231,14 +229,14 @@ public class Game {
                 }
                 break;
                 
-            case 2: // Rook
-                addLinearAttacks(board, x, y, attacks, 0, 1);  // right
-                addLinearAttacks(board, x, y, attacks, 0, -1); // left
-                addLinearAttacks(board, x, y, attacks, 1, 0);  // down
-                addLinearAttacks(board, x, y, attacks, -1, 0); // up
+            case 2:
+                addLinearAttacks(board, x, y, attacks, 0, 1);
+                addLinearAttacks(board, x, y, attacks, 0, -1);
+                addLinearAttacks(board, x, y, attacks, 1, 0);
+                addLinearAttacks(board, x, y, attacks, -1, 0);
                 break;
                 
-            case 3: // Knight
+            case 3:
                 int[][] knightMoves = {{-2,-1}, {-2,1}, {-1,-2}, {-1,2}, {1,-2}, {1,2}, {2,-1}, {2,1}};
                 for (int[] move : knightMoves) {
                     int newX = x + move[0];
@@ -249,25 +247,25 @@ public class Game {
                 }
                 break;
                 
-            case 4: // Bishop
-                addLinearAttacks(board, x, y, attacks, 1, 1);   // down-right
-                addLinearAttacks(board, x, y, attacks, 1, -1);  // down-left
-                addLinearAttacks(board, x, y, attacks, -1, 1);  // up-right
-                addLinearAttacks(board, x, y, attacks, -1, -1); // up-left
+            case 4:
+                addLinearAttacks(board, x, y, attacks, 1, 1);
+                addLinearAttacks(board, x, y, attacks, 1, -1);
+                addLinearAttacks(board, x, y, attacks, -1, 1);
+                addLinearAttacks(board, x, y, attacks, -1, -1);
                 break;
                 
-            case 5: // Queen
-                addLinearAttacks(board, x, y, attacks, 0, 1);   // right
-                addLinearAttacks(board, x, y, attacks, 0, -1);  // left
-                addLinearAttacks(board, x, y, attacks, 1, 0);   // down
-                addLinearAttacks(board, x, y, attacks, -1, 0);  // up
-                addLinearAttacks(board, x, y, attacks, 1, 1);   // down-right
-                addLinearAttacks(board, x, y, attacks, 1, -1);  // down-left
-                addLinearAttacks(board, x, y, attacks, -1, 1);  // up-right
-                addLinearAttacks(board, x, y, attacks, -1, -1); // up-left
+            case 5:
+                addLinearAttacks(board, x, y, attacks, 0, 1);
+                addLinearAttacks(board, x, y, attacks, 0, -1);
+                addLinearAttacks(board, x, y, attacks, 1, 0);
+                addLinearAttacks(board, x, y, attacks, -1, 0);
+                addLinearAttacks(board, x, y, attacks, 1, 1);
+                addLinearAttacks(board, x, y, attacks, 1, -1);
+                addLinearAttacks(board, x, y, attacks, -1, 1);
+                addLinearAttacks(board, x, y, attacks, -1, -1);
                 break;
                 
-            case 6: // King
+            case 6:
                 for (int i = -1; i <= 1; i++) {
                     for (int j = -1; j <= 1; j++) {
                         if (i == 0 && j == 0) continue;
@@ -286,7 +284,7 @@ public class Game {
         int newY = y + dy;
         while (isInBounds(newX, newY)) {
             attacks.add(new int[]{newX, newY});
-            if (board[newX][newY] != 0) break; // Stop at first piece encountered
+            if (board[newX][newY] != 0) break;
             newX += dx;
             newY += dy;
         }
@@ -309,7 +307,7 @@ public class Game {
         // Find king position
         int kingX, kingY;
         int[] kingPos = findKingPosition(tempBoard, kingValue);
-        if (kingPos == null) return true;  // Missing this check
+        if (kingPos == null) return true;
         kingX = kingPos[0];
         kingY = kingPos[1];
 
@@ -381,19 +379,19 @@ public class Game {
 
     private boolean isPawnThreatened(int[][] tempBoard, int kingX, int kingY, int opponentSign) {
         // Check the two diagonal squares where enemy pawns could attack from
-        int pawnDirection = opponentSign > 0 ? 1 : -1;  // Direction pawns move
-        int[] pawnColumns = {-1, 1};  // Left and right diagonal
+        int pawnDirection = opponentSign > 0 ? 1 : -1;
+        int[] pawnColumns = {-1, 1};
 
         for (int colOffset : pawnColumns) {
-            int x = kingX + pawnDirection;  // One row in the direction pawns come from
-            int y = kingY + colOffset;      // Left or right diagonal
+            int x = kingX + pawnDirection;
+            int y = kingY + colOffset;
             
             if (isInBounds(x, y)) {
                 int piece = tempBoard[x][y];
                 // Check if there's an enemy pawn in this position
                 if (piece != 0 && 
                     Integer.signum(piece) == opponentSign && 
-                    Math.abs(piece) == 1) {  // 1 represents pawn
+                    Math.abs(piece) == 1) {
                     return true;
                 }
             }
@@ -438,7 +436,7 @@ public class Game {
         for (int offset : new int[]{-1, 1}) {
             int newY = y + offset;
             if (isInBounds(newX, newY)) {
-                // Regular capture
+                // normal capture
                 if (board[newX][newY] != 0 && Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
                     moves.add(new int[]{newX, newY});
                 }
@@ -569,7 +567,7 @@ public class Game {
             if (isInBounds(newX, newY)) {
                 // Check if square is empty or has opponent's piece
                 if (board[newX][newY] == 0 || Integer.signum(board[newX][newY]) != Integer.signum(piece)) {
-                    // Create a temporary board to test the move
+                    // Create a temporary board to test the move again
                     int[][] tempBoard = new int[board.length][board.length];
                     for (int i = 0; i < board.length; i++) {
                         System.arraycopy(board[i], 0, tempBoard[i], 0, board[i].length);

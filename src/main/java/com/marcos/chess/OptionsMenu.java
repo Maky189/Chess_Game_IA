@@ -32,6 +32,9 @@ public class OptionsMenu {
         AnchorPane root = new AnchorPane();
         root.setStyle("-fx-background-image: url('/assets/board/menu.png'); -fx-background-size: cover;");
 
+        MenuBackground background = new MenuBackground(windowsWidth, windowsHeight);
+        root.getChildren().add(0, background);
+
         Text title = new Text("Options");
         title.setFill(Color.WHITE);
         title.setFont(Font.font("Arial", FontWeight.BOLD, 48));
@@ -91,6 +94,8 @@ public class OptionsMenu {
         AnchorPane.setRightAnchor(optionsBox, 50.0);
 
         root.getChildren().addAll(title, optionsBox);
+
+        stage.setOnCloseRequest(e -> background.cleanup());
 
         return new Scene(root, windowsWidth, windowsHeight);
     }

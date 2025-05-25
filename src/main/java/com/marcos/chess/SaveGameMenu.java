@@ -33,6 +33,8 @@ public class SaveGameMenu {
         AnchorPane root = new AnchorPane();
         root.setStyle("-fx-background-image: url('/assets/board/menu.png'); -fx-background-size: cover;");
 
+        MenuBackground background = new MenuBackground(windowsWidth, windowsHeight);
+        root.getChildren().add(0, background);
 
         Text title = new Text("Saved Games");
         title.setFill(Color.WHITE);
@@ -124,6 +126,9 @@ public class SaveGameMenu {
         stage.setMaximized(true);
         stage.setFullScreenExitHint("");
         stage.setFullScreen(true);
+
+        stage.setOnCloseRequest(e -> background.cleanup());
+
         return scene;
     }
 

@@ -8,7 +8,8 @@ public class GameOptions {
     private static GameOptions instance;
     
     private boolean is3DMode;
-    private boolean playAsWhite = true;  // Default to playing as white
+    // LLater to play as black I just need to change this
+    private boolean playAsWhite = true;
 
     private GameOptions() {
         loadOptions();
