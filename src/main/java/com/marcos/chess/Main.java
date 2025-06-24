@@ -26,7 +26,11 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         Screen.getPrimary();
-        Menu menu = new Menu(stage, WINDOWS_WIDTH, WINDOWS_HEIGHT);
-        menu.showMenu();
+        // Show the intro screen first
+        IntroScreen intro = new IntroScreen(stage, WINDOWS_WIDTH, WINDOWS_HEIGHT, () -> {
+            Menu menu = new Menu(stage, WINDOWS_WIDTH, WINDOWS_HEIGHT);
+            menu.showMenu();
+        });
+        // The IntroScreen handles setting the scene and transitioning to the menu
     }
 }
